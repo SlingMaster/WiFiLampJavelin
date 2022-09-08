@@ -1,0 +1,43 @@
+﻿<!DOCTYPE HTML>
+<html lang="en-US-x-Hixie">
+
+<head>
+  <title>Wifi Lamp Remote</title>
+  <link rel="shortcut icon" type="image/x-icon" href="img/favicon.ico">
+  <link rel="apple-touch-icon-precomposed" href="img/ic_ios.png" />
+  <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <!-- Run in full-screen mode. -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <!-- Make the status bar black with white text. -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <!-- Disable phone number detection. -->
+  <meta name="format-detection" content="telephone=no" />
+  <!-- Set viewport. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="fonts/stylesheet.css" type="text/css" charset="utf-8" />
+  <link rel="stylesheet" href="css/assets.min.css" type="text/css" charset="utf-8" />
+  <script type="text/javascript" src="libs/jquery-2.1.4.min.js"></script>
+  <script type="text/javascript" src="js/script.min.js"></script>
+</head>
+
+<body>
+  <div id="win" class="content css-opacity">
+    <div class="panels">
+      <!--  top panel -->
+      <div id="content_container" class="iscroll_container"></div>
+      <div id="lamp_list" class="list_container" onclick="expandList(event)"></div>
+      <div id="dialog" class="dialog_container hide"></div>
+      <div class="frame_container">
+        <iframe id="web_srv" class="frame_esp_srv"></iframe>
+      </div>
+      <!--  bottom panel -->
+      <div class="service_container">
+        <div id="remote" class="cs_container"></div>
+        <div class="developer_box"></div>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>
