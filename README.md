@@ -80,6 +80,9 @@ can be sent directly from the web page https://bank.gov.ua/ua/about/support-the-
 
 
 # Останні зміни :
+1.Додана схема лампы, та розпайка монтажної платы:
+------------------------------------------------------------------------------------------
+
 # Програмне забезпечення для Android та Windows
 # Версія 3.0 
 1. Android • RemoteControlForAndroid/WiFi Lamp Remote 3.1.0.39.apk
