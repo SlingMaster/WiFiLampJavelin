@@ -105,7 +105,7 @@ can be sent directly from the web page https://bank.gov.ua/ua/about/support-the-
 Глобальные переменные используют 51496 байт (62%) динамической памяти, оставляя 30424 байт для локальных переменных. Максимум: 81920 байт.
 
 # !!! Будьте уважні.
-# Лампа потребує активації, для цього необхідно запустити програмне забезпечення RemoteControlForWindows\WiFiLampRemote.exe, або в браузері за посиланням http://winecard.ltd.ua/dev/LampRemote2/index.html?ip=192.168.1.1&dev=1&timeout=200&lang=0&sound=1
+# Лампа потребує активації, для цього необхідно запустити програмне забезпечення RemoteControlForWindows\WiFiLampRemote.exe, або в браузері за посиланням http://winecard.ltd.ua/dev/WifiLampRemote3/index.html?ip=192.168.1.111&dev=1&timeout=200&sound=1
 
 
 ------------------------------------------------------------------------------------------
