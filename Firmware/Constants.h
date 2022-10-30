@@ -131,7 +131,7 @@ static const uint8_t defaultSettings[][4] PROGMEM = {
   {   9,  96,  31,  LOW_DELAY}, // 3мeйки
   {  19,  60,  20,  LOW_DELAY}, // Nexus
   {   9,  85,  85,  LOW_DELAY}, // Шapы
-  {   7,  89,  83,  LOW_DELAY}, // Cинycoид
+  {   7, 122,  83,  LOW_DELAY}, // Cинycoид
   {   7,  85,   3,  LOW_DELAY}, // Meтaбoлз
 
   /* bright, speed, scale, FPSdelay */
@@ -217,7 +217,10 @@ static const uint8_t defaultSettings[][4] PROGMEM = {
   {  22, 128,  50, SOFT_DELAY}, // Мечта Дизайнера    |  {"n":"Мечта Дизайнера","v":[0,255,1,100,0]},
   {  55, 128,  25, SOFT_DELAY}, // Цветные кудри      |  {"n":"Цветные кудри","v":[128,128,10,90,0]},
   {   8, 160,  65,    DYNAMIC}, // Краплі на воді     |  {"n":"Краплі на воді","v":[120,215,1,100,1]},
-  {  45, 128,  60,    DYNAMIC}, // Чарівний Ліхтар    |  {"n":"Чарівний Ліхтарик","v":[1,128,1,100,1]}, Magic Lantern
+  {  45,  30,  60,    DYNAMIC}, // Чарівний Ліхтар    |  {"n":"Чарівний Ліхтарик","v":[1,128,1,100,1]}, Magic Lantern
+  {  10, 215,  60,    DYNAMIC}, // Червона Рута       |  {"n":"Червона Рута","v":[150,255,49,50,0]}, Red Ruth
+  {  11, 250,  65,    DYNAMIC}, // HandFan            |  {"n":"Опахало","v":[200,255,1,100,1]}, Hand Fan  
+  {  10, 128,  50,    DYNAMIC}, // Плазмові Хвилі     |  {"n":"Плазмові Хвилі","v":[127,128,1,100,0]}, Plasma Waves                 
   // !!! последние эффекты имеют постоянную прописку
   // никогда не перемещайте их по списку, остальные эффекты
   // можно размещать в любой последовательности.
@@ -335,8 +338,9 @@ uint8_t DAWN_TIMEOUT;                                       // сколько р
 #define CMD_SAVE_ALARMS       (62U)
 #define CMD_CUSTOM_EFF        (66U)
 #define CMD_FW_INFO           (69U)
+#define CMD_CONNECT           (77U)
 #define CMD_DIAGNOSTIC        (90U)
 #define CMD_ACTIVATE          (95U)
 #define CMD_EFF_JAVELIN       (99U)
 // -------------------------------------
-String VERSION = "4.0 " + String(MODE_AMOUNT);
+String VERSION = "4.1 " + String(MODE_AMOUNT);
