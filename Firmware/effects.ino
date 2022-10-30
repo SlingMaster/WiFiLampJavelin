@@ -855,14 +855,15 @@ void Snowfall() {
     }
 #endif //#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
     loadingFlag = false;
-    divider = floor((modes[currentMode].Scale - 1) / 25);
+    clearNoiseArr();
+    divider = floor(modes[currentMode].Scale / 25);
   }
 
   if (divider == 1) {
     dimAll(40);
   } else {
     if (divider == 2) {
-      gradientVertical(0, 0, WIDTH, HEIGHT, 140, 140, 160, 128, 255);
+      gradientVertical(0, 0, WIDTH, HEIGHT, 160, 160, 255, 128, 255U);
     } else {
       FastLED.clear();
     }
@@ -2088,27 +2089,26 @@ void MetaBallsRoutine() {
 // 3rd proper by SottNick
 
 void Sinusoid3Routine() {
-  if (loadingFlag)
-  {
+  CRGB color;
+  if (loadingFlag) {
 #if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
     if (selectedSettings) {
       uint8_t tmp = random8(100U);
       setModeSettings(tmp + 1U, 4U + random8(183U));
     }
 #endif //#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
-
     loadingFlag = false;
-    deltaValue = (modes[currentMode].Speed - 1U) % 9U; // количество режимов
+    deltaValue = (modes[currentMode].Speed - 1U) % 9U;                    // количество режимов
     emitterX = WIDTH * 0.5;
     emitterY = HEIGHT * 0.5;
     speedfactor = 0.00145 * modes[currentMode].Speed + 0.015;
   }
-  float e_s3_size = 3. * modes[currentMode].Scale / 100.0 + 2;    // amplitude of the curves
+  float e_s3_size = 3. * modes[currentMode].Scale / 100.0 + 2;                // amplitude of the curves
   uint32_t time_shift = millis() & 0xFFFFFF; // overflow protection
-  uint16_t _scale = (((modes[currentMode].Scale - 1U) % 9U) * 10U + 80U) << 7U; // = fmap(scale, 1, 255, 0.1, 3);
-  float _scale2 = (float)((modes[currentMode].Scale - 1U) % 9U) * 0.2 + 0.4; // для спиралей на sinf
-  uint16_t _scale3 = ((modes[currentMode].Scale - 1U) % 9U) * 1638U + 3276U; // для спиралей на sin16
-  CRGB color;
+  uint16_t _scale = (((modes[currentMode].Scale - 1U) % 9U) * 10U + 80U) << 7U;  // = fmap(scale, 1, 255, 0.1, 3);
+  float _scale2 = (float)((modes[currentMode].Scale - 1U) % 9U) * 0.2 + 0.4;  // для спиралей на sinf
+  uint16_t _scale3 = ((modes[currentMode].Scale - 1U) % 9U) * 1638U + 3276U;     // для спиралей на sin16
+
   float center1x = float(e_s3_size * sin16(speedfactor * 72.0874 * time_shift)) / 0x7FFF - emitterX;
   float center1y = float(e_s3_size * cos16(speedfactor * 98.301  * time_shift)) / 0x7FFF - emitterY;
   float center2x = float(e_s3_size * sin16(speedfactor * 68.8107 * time_shift)) / 0x7FFF - emitterX;
@@ -6990,11 +6990,8 @@ void ColorFrizzles() {
 // =====================================
 /* --------------------------------- */
 void RadialWave() {
-  uint8_t LED_COLS = WIDTH;
-  uint8_t LED_ROWS = HEIGHT;
   static uint32_t t;
 
-  FastLED.clear();
   if (loadingFlag) {
 #if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
     if (selectedSettings) {
@@ -7004,54 +7001,24 @@ void RadialWave() {
 #endif
 
     loadingFlag = false;
-    for (int8_t x = -CENTER_X_MAJOR; x < CENTER_X_MAJOR + (LED_COLS % 2); x++) {
-      for (int8_t y = -CENTER_Y_MAJOR; y < CENTER_Y_MAJOR + (LED_ROWS % 2); y++) {
-        noise3d[0][x + CENTER_X_MAJOR][y + CENTER_Y_MAJOR] = (atan2(x, y) / PI) * 128 + 127; // thanks ldirko
-        noise3d[1][x + CENTER_X_MAJOR][y + CENTER_Y_MAJOR] = hypot(x, y); // thanks Sutaburosu
+    FastLED.clear();
+    for (int8_t x = -CENTER_X_MAJOR; x < CENTER_X_MAJOR; x++) {
+      for (int8_t y = -CENTER_Y_MAJOR; y < CENTER_Y_MAJOR; y++) {
+        noise3d[0][x + CENTER_X_MAJOR][y + CENTER_Y_MAJOR] = (atan2(x, y) / PI) * 128 + 127;   // thanks ldirko
+        noise3d[1][x + CENTER_X_MAJOR][y + CENTER_Y_MAJOR] = hypot(x, y);                      // thanks Sutaburosu
       }
     }
   }
 
   t++;
-  for (uint8_t x = 0; x < LED_COLS; x++) {
-    for (uint8_t y = 0; y < LED_ROWS; y++) {
+  for (uint8_t x = 0; x < WIDTH; x++) {
+    for (uint8_t y = 0; y < HEIGHT; y++) {
       byte angle = noise3d[0][x][y];
       byte radius = noise3d[1][x][y];
-      leds[XY(x, y)] = CHSV(t + radius * (255 / LED_COLS), 255, sin8(t * 4 + sin8(t * 4 - radius * (255 / LED_COLS)) + angle * 3));
+      leds[XY(x, y)] = CHSV(t + radius * (255 / WIDTH), 255, sin8(t * 4 + sin8(t * 4 - radius * (255 / WIDTH)) + angle * 3));
     }
   }
 }
-//
-//void RadialWave2() {
-//  static uint32_t t;
-//
-//  FastLED.clear();
-//  if (loadingFlag) {
-//#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
-//    if (selectedSettings) {
-//      // scale | speed
-//      setModeSettings(50U, random(25U, 255U));
-//    }
-//#endif
-//    loadingFlag = false;
-//    for (int8_t x = -CENTER_X_MAJOR; x < CENTER_X_MAJOR + (WIDTH % 2); x++) {
-//      for (int8_t y = -CENTER_Y_MAJOR; y < CENTER_Y_MAJOR + (HEIGHT % 2); y++) {
-//        XY_angle[x + CENTER_X_MAJOR][y + CENTER_Y_MAJOR] = (atan2(x, y) / PI) * 128 + 127; // thanks ldirko
-//        XY_radius[x + CENTER_X_MAJOR][y + CENTER_Y_MAJOR] = hypot(x, y); // thanks Sutaburosu
-//      }
-//    }
-//  }
-//
-//  t++;
-//  for (uint8_t x = 0; x < WIDTH; x++) {
-//    for (uint8_t y = 0; y < HEIGHT; y++) {
-//      byte angle = XY_angle[x][y];
-//      byte radius = XY_radius[x][y];
-//      leds[XY(x, y)] = CHSV(t + radius * (255 / WIDTH), 255, sin8(t * 4 + sin8(t * 4 - radius * (255 / WIDTH)) + angle * 3));
-//    }
-//  }
-//}
-
 
 // ============  FireSparks =============
 //               © Stepko
@@ -7193,6 +7160,45 @@ void DropInWater() {
     hue++;
   }
   blur2d(leds, WIDTH, HEIGHT, 64);
+}
+
+// =====================================
+//            Flower Ruta
+//    © Stepko and © Sutaburosu
+//     Adaptation © SlingMaster
+//             22/05/22
+// =====================================
+/* --------------------------------- */
+void FlowerRuta() {
+  static uint8_t PETALS;
+  static uint32_t t;
+  if (loadingFlag) {
+#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      // scale | speed
+      setModeSettings(random8(1U, 255U), random8(150U, 255U));
+    }
+#endif
+    loadingFlag = false;
+    PETALS = map(modes[currentMode].Scale, 1, 100, 2U, 5U);
+    LOG.printf_P(PSTR("Scale: %03d | PETALS : %02d | Speed %03d\n"), modes[currentMode].Scale, PETALS, modes[currentMode].Speed);
+    FastLED.clear();
+    for (int8_t x = -CENTER_X_MAJOR; x < CENTER_X_MAJOR; x++) {
+      for (int8_t y = -CENTER_Y_MAJOR; y < CENTER_Y_MAJOR; y++) {
+        noise3d[0][x + CENTER_X_MAJOR][y + CENTER_Y_MAJOR] = (atan2(x, y) / PI) * 128 + 127; // thanks ldirko
+        noise3d[1][x + CENTER_X_MAJOR][y + CENTER_Y_MAJOR] = hypot(x, y);                    // thanks Sutaburosu
+      }
+    }
+  }
+
+  t++;
+  for (uint8_t x = 0; x < WIDTH; x++) {
+    for (uint8_t y = 0; y < HEIGHT; y++) {
+      byte angle = noise3d[0][x][y];
+      byte radius = noise3d[1][x][y];
+      leds[XY(x, y)] = CHSV(t + radius * (255 / WIDTH), 255, sin8(sin8(t + angle * PETALS + ( radius * (255 / WIDTH))) + t * 4 + sin8(t * 4 - radius * (255 / WIDTH)) + angle * PETALS));
+    }
+  }
 }
 
 // =====================================
