@@ -1,6 +1,5 @@
 {
    "ESP_mode" : 1,
-   "Power" : 0,
    "SSDP" : "WiFi Lamp Javelin",
    "Summer_Time" : 1,
    "TimeOut" : 600,
