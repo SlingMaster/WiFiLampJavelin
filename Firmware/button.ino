@@ -155,6 +155,8 @@ void runOTA() {
     changePower();
 #ifdef  JAVELIN
     digitalWrite(OTA_PIN, LOW);
+    leds[NUM_LEDS + ROUND_MATRIX] = CHSV{96U, 255U, 255U};
+    leds[NUM_LEDS + ROUND_MATRIX + 2] = CHSV{96U, 255U, 255U};
 #ifdef BACKLIGHT_PIN
     digitalWrite(BACKLIGHT_PIN, LOW);
 #endif
@@ -191,7 +193,6 @@ void smartLampOff(uint8_t timeout ) {
   showWarning(CRGB::Red, 1000, 250U);                        // мигание синим цветом 1 секунду подтверждение включения
   ONflag = true;
   changePower();
-  jsonWrite(configSetup, "Power", ONflag);
   settChanged = true;
   eepromTimeout = millis();
 
@@ -229,7 +230,6 @@ void buttonTick() {
       changePower();
     } else {
       ONflag = !ONflag;
-      jsonWrite(configSetup, "Power", ONflag);
       changePower();
     }
     updateSets();
@@ -372,7 +372,6 @@ void buttonTick() {
         Button_Holding = true;
         currentMode = EFF_WHITE_COLOR;
         ONflag = true;
-        jsonWrite(configSetup, "Power", ONflag);
         changePower();
         settChanged = true;
         eepromTimeout = millis();

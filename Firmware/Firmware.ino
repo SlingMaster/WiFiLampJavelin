@@ -173,6 +173,7 @@ uint8_t FPSdelay = DYNAMIC;
 uint8_t currentMode = 0;
 bool loadingFlag = true;
 uint8_t custom_eff = 0;
+byte camouflage = 0;
 bool ONflag = false;
 uint32_t eepromTimeout;
 bool settChanged = false;
@@ -230,12 +231,7 @@ void setup() {
 
 
   // ПИНЫ
-#ifdef MOSFET_PIN                                         // инициализация пина, управляющего MOSFET транзистором в состояние "выключен"
-  pinMode(MOSFET_PIN, OUTPUT);
-#ifdef MOSFET_LEVEL
-  digitalWrite(MOSFET_PIN, !MOSFET_LEVEL);
-#endif
-#endif
+
 
 #ifdef  JAVELIN
 #ifdef BACKLIGHT_PIN
@@ -248,6 +244,12 @@ void setup() {
   digitalWrite(OTA_PIN, HIGH);
 #endif
 
+#ifdef MOSFET_PIN                                         // инициализация пина, управляющего MOSFET транзистором в состояние "выключен"
+  pinMode(MOSFET_PIN, OUTPUT);
+#ifdef MOSFET_LEVEL
+  digitalWrite(MOSFET_PIN, !MOSFET_LEVEL);
+#endif
+#endif
 
 #ifdef ALARM_PIN                                          // инициализация пина, управляющего будильником в состояние "выключен"
   pinMode(ALARM_PIN, OUTPUT);
@@ -279,6 +281,7 @@ void setup() {
   espMode = jsonReadtoInt(configSetup, "ESP_mode");
   PRINT_TIME = jsonReadtoInt(configSetup, "print_time");
   custom_eff = jsonReadtoInt(configSetup, "custom_eff");
+  camouflage = jsonReadtoInt(configSetup, "camouflage");
 
   if (jsonReadtoInt(configSetup, "fav_effect") >= MODE_AMOUNT) {
     jsonWrite(configSetup, "fav_effect", EFF_MATRIX);
@@ -307,7 +310,6 @@ void setup() {
 #ifdef USE_NTP
   (jsonRead(configSetup, "ntp")).toCharArray (NTP_ADDRESS, (jsonRead(configSetup, "ntp")).length() + 1);
 #endif
-  jsonWrite(configSetup, "Power", ONflag);
   Serial.print ("TextTicker = ");
   Serial.println (TextTicker);
 #ifdef USE_NTP
@@ -390,10 +392,10 @@ void setup() {
   if (CURRENT_LIMIT > 0) {
     FastLED.setMaxPowerInVoltsAndMilliamps(5, CURRENT_LIMIT);
   }
-  FastLED.clear();
 #ifdef JAVELIN
-  DrawLevel(0, 0, ROUND_MATRIX, CHSV {180, 255, 100});
+  DrawLevel(0, (ROUND_MATRIX + LIGHT_MATRIX), (ROUND_MATRIX + LIGHT_MATRIX), CHSV {180, 0, 0});
 #endif
+  FastLED.clear();
   FastLED.show();
 
 #ifdef USE_SHUFFLE_FAVORITES                                 // первоначальная очередь избранного до перемешивания

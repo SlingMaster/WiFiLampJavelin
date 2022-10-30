@@ -353,6 +353,8 @@ void handle_cmd() {
       eff_valid = val;
       jsonWrite(configSetup, "eff_valid", eff_valid);
       break;
+    case CMD_CONNECT:
+      break;
     case CMD_OTA:
       eff_auto = 0;
       runOTA();
@@ -404,7 +406,7 @@ String getCurState() {
   lamp_state += "\"ver\":\"" + VERSION + "\",";
   lamp_state += "\"valid\":" + String(eff_valid) + ",";
   lamp_state += "\"power\":" + String(ONflag) + ",";
-  lamp_state += "\"workgroup\":\"" + String(WORKGROUP) + "\",";
+  lamp_state += "\"workgroup\":" + String(WORKGROUP) + ",";
   lamp_state += "\"custom_eff\":" + String(custom_eff) + ",";
   lamp_state += "\"eff_auto\":" + String(eff_auto) + ",";
   lamp_state += "\"cycle\":" + String(FavoritesManager::FavoritesRunning) + ",";
@@ -412,6 +414,12 @@ String getCurState() {
   lamp_state += "\"max_eff\":" + String(MODE_AMOUNT) + ",";
   lamp_state += "\"bright\":" + String(modes[currentMode].Brightness) + ",";
   lamp_state += "\"speed\":" + String(modes[currentMode].Speed) + ",";
+  lamp_state += "\"free_heap\":" + String(system_get_free_heap_size()) + ",";
+#ifdef  JAVELIN
+  lamp_state += "\"javelin\":1,";
+#else
+  lamp_state += "\"javelin\":0,";
+#endif
   lamp_state += "\"scale\":" + String(modes[currentMode].Scale);
   return lamp_state;
 }
