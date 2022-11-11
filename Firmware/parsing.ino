@@ -7,6 +7,10 @@ void parseUDP() {
     int16_t n = Udp.read(packetBuffer, MAX_UDP_BUFFER_SIZE);
     packetBuffer[n] = '\0';
     strcpy(inputBuffer, packetBuffer);
+#ifdef GENERAL_DEBUG
+    LOG.print(F("Inbound UDP packet: "));
+    LOG.println(inputBuffer);
+#endif
     if (Udp.remoteIP() == WiFi.localIP())  {                // не реагировать на свои же пакеты
       return;
     }
@@ -18,7 +22,6 @@ void parseUDP() {
       strcpy(MqttManager::mqttBuffer, reply);               // разрешение определяется при выполнении каждой команды отдельно, команды GET, DEB, DISCOVER и OTA, пришедшие по UDP, игнорируются (приходят раз в 2 секунды от приложения)
     }
 #endif
-
     Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
     Udp.write(reply);
     Udp.endPacket();
@@ -97,7 +100,7 @@ void processInputBuffer(char *inputBuffer, char *outputBuffer, bool generateOutp
   else if (!strncmp_P(inputBuffer, PSTR("EFF"), 3)) {
     EepromManager::SaveModesSettings(&currentMode, modes);
     memcpy(buff, &inputBuffer[3], strlen(inputBuffer));   // взять подстроку, состоящую последних символов строки inputBuffer, начиная с символа 4
-    // currentMode = (uint8_t)atoi(buff);
+    currentMode = (uint8_t)atoi(buff);
     updateSets();
     sendCurrent(inputBuffer);
 
@@ -379,7 +382,7 @@ void processInputBuffer(char *inputBuffer, char *outputBuffer, bool generateOutp
       case 1U: {
           tempStr = String("LIST1;") + convertList(readFile("effects1.json", 2048));
           Udp.write(tempStr.c_str());
-          // Udp.write(efList_1.c_str());
+          //Udp.write(efList_1.c_str());
           Udp.write("\0");
           break;
         }
