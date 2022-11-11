@@ -2335,3 +2335,88 @@ void HandFan() {
     }
   }
 }
+
+// =============== Bamboo ===============
+//             © SlingMaster
+//                 Бамбук
+// --------------------------------------
+uint8_t nextColor(uint8_t posY, uint8_t base, uint8_t next ) {
+  const byte posLine = (HEIGHT > 16) ? 4 : 3;
+  if ((posY + 1 == posLine) | (posY == posLine)) {
+    return next;
+  } else {
+    return base;
+  }
+}
+
+// --------------------------------------
+void Bamboo() {
+  const uint8_t gamma[7] = {0, 32, 144, 160, 196, 208, 230};
+  static float index;
+  const byte DELTA = 4U;
+  const uint8_t VG_STEP = 64U;
+  const uint8_t V_STEP = 32U;
+  const byte posLine = (HEIGHT > 16) ? 4 : 3;
+  const uint8_t SX = 5;
+  const uint8_t SY = 10;
+  static float deltaX = 0;
+  static bool direct = false;
+  uint8_t posY;
+  static uint8_t colLine;
+  const float STP = 0.2;
+  if (loadingFlag) {
+#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      //                     scale | speed
+      setModeSettings(random8(100U), random8(128, 255U));
+    }
+#endif //#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    loadingFlag = false;
+    index = STP;
+    uint8_t idx = map(modes[currentMode].Scale, 5, 95, 0U, 6U);;
+    colLine = gamma[idx];
+    step = 0U;
+  }
+
+  // *** ---
+  for (int y = 0; y < HEIGHT + SY; y++) {
+    if (modes[currentMode].Scale < 50U) {
+      if (step % 128 == 0U) {
+        deltaX += STP * ((direct) ? -1 : 1);
+        if ((deltaX > 1) | (deltaX < -1)) direct = !direct;
+      }
+    } else {
+      deltaX = 0;
+    }
+    posY = y;
+    for (int x = 0; x < WIDTH + SX; x++) {
+      if (y == posLine) {
+        drawPixelXYF(x , y - 1, CHSV(colLine, 255U, 128U));
+        drawPixelXYF(x, y, CHSV(colLine, 255U, 96U));
+        if (HEIGHT > 16) {
+          drawPixelXYF(x, y - 2, CHSV(colLine, 10U, 64U));
+        }
+      }
+      if ((x % SX == 0U) & (y % SY == 0U)) {
+        for (int i = 1; i < (SY - 3); i++) {
+          if (i < 3) {
+            posY = y - i + 1 - DELTA + index;
+            drawPixelXYF(x - 3 + deltaX, posY, CHSV(nextColor(posY, 96, colLine), 255U, 255 - V_STEP * i));
+            posY = y - i + index;
+            drawPixelXYF(x + deltaX, posY, CHSV(nextColor(posY, 96, colLine), 255U, 255 - VG_STEP * i));
+          }
+          posY = y - i - DELTA + index;
+          drawPixelXYF(x - 4 + deltaX, posY , CHSV(nextColor(posY, 96, colLine), 180U, 255 - V_STEP * i));
+          posY = y - i + 1 + index;
+          drawPixelXYF(x - 1 + deltaX, posY , CHSV(nextColor(posY, ((i == 1) ? 96 : 80), colLine), 255U, 255 - V_STEP * i));
+        }
+      }
+    }
+    step++;
+  }
+  if (index >= SY)  {
+    index = 0;
+  }
+  fadeToBlackBy(leds, NUM_LEDS, 60);
+  index += STP;
+}
