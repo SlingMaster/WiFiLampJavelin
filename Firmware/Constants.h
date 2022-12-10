@@ -224,6 +224,7 @@ static const uint8_t defaultSettings[][4] PROGMEM = {
   {   8, 254,   0, SOFT_DELAY}, // Tixi Land          |  {"n":"Tixy Land","v":[1,254,1,100,1]}, Tixy Land
   {   8, 215,  99,    DYNAMIC}, // Зірки              |  {"n":"Зірки","v":[80,254,1,100,0]}, Stars
   {  12, 215,  90,    DYNAMIC}, // Бамбук             |  {"n":"Бамбук","v":[100,255,1,100,0]}, Bamboo,
+  {  12, 128,  75,    DYNAMIC}, // Новорічна листівка |  {"n":"Новорічна листівка","v":[50,160,1,100,0]}, New Year's Сard
   // !!! последние эффекты имеют постоянную прописку
   // никогда не перемещайте их по списку, остальные эффекты
   // можно размещать в любой последовательности.
@@ -346,4 +347,4 @@ uint8_t DAWN_TIMEOUT;                                       // сколько р
 #define CMD_ACTIVATE          (95U)
 #define CMD_EFF_JAVELIN       (99U)
 // -------------------------------------
-String VERSION = "4.1 " + String(MODE_AMOUNT);
+String VERSION = "4.3 " + String(MODE_AMOUNT);

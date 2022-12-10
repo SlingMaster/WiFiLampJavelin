@@ -324,7 +324,9 @@ void TixyLand() {
 
 // =====================================
 //                Stars
-//     © SottNick and  © Stepko
+//            © Marc Merlin
+//               доробки 
+//    © SottNick © kostyamat, © kDn 
 //      Adaptation © SlingMaster
 //                Зірки
 // =====================================

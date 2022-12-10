@@ -1181,7 +1181,6 @@ void FeatherCandleRoutine() {
 //             EFF_HOURGLASS
 //             Песочные Часы
 //---------------------------------------
-
 void Hourglass() {
   const float SIZE = 0.4;
   const uint8_t h = floor(SIZE * HEIGHT);
@@ -1205,8 +1204,8 @@ void Hourglass() {
     hue = modes[currentMode].Scale * 2.55;
     for (uint8_t x = 0U; x < ((WIDTH / 2)); x++) {
       for (uint8_t y = 0U; y < h; y++) {
-        leds[XY(CENTER_X_MINOR - x, HEIGHT - y - 1)] = CHSV(hue, 255, 255 - x * STEP);
-        leds[XY(CENTER_X_MAJOR + x, HEIGHT - y - 1)] = CHSV(hue, 255, 255 - x * STEP);
+        drawPixelXY(CENTER_X_MINOR - x, HEIGHT - y - 1, CHSV(hue, 255, 255 - x * STEP));
+        drawPixelXY(CENTER_X_MAJOR + x, HEIGHT - y - 1, CHSV(hue, 255, 255 - x * STEP));
       }
     }
   }
@@ -1218,21 +1217,22 @@ void Hourglass() {
 
     /* move sand -------- */
     if ((posY < (HEIGHT - h - 2)) && (posY > deltaHue2)) {
-      leds[XY(CENTER_X_MAJOR,  posY)] = CHSV(hue, 255, 255);
-      leds[XY(CENTER_X_MAJOR,  posY - 2)] = CHSV(hue, 255, 255);
-      leds[XY(CENTER_X_MAJOR,  posY - 4)] = CHSV(hue, 255, 255);
+      drawPixelXY(CENTER_X_MAJOR, posY, CHSV(hue, 255, 255));
+      drawPixelXY(CENTER_X_MAJOR, posY - 2, CHSV(hue, 255, 255));
+      drawPixelXY(CENTER_X_MAJOR, posY - 4, CHSV(hue, 255, 255));
+
       if (posY < (HEIGHT - h - 3)) {
-        leds[XY(CENTER_X_MAJOR,  posY + 1)] =  CHSV(hue, 255, 0 );
+        drawPixelXY(CENTER_X_MAJOR, posY + 1, CHSV(hue, 255, 0 ));
       }
     }
 
     /* draw body hourglass */
     if (pcnt % 2 == 0) {
-      leds[XY(CENTER_X_MAJOR - posX, HEIGHT - deltaHue2 - 1)] = CHSV(hue, 255, 0);
-      leds[XY(CENTER_X_MAJOR - posX, deltaHue2)] = CHSV(hue, 255, 255 - posX * STEP);
+      drawPixelXY(CENTER_X_MAJOR - posX, HEIGHT - deltaHue2 - 1, CHSV(hue, 255, 0));
+      drawPixelXY(CENTER_X_MAJOR - posX, deltaHue2, CHSV(hue, 255, 255 - posX * STEP));
     } else {
-      leds[XY(CENTER_X_MAJOR + posX, HEIGHT - deltaHue2 - 1)] = CHSV(hue, 255, 0);
-      leds[XY(CENTER_X_MAJOR + posX, deltaHue2)] = CHSV(hue, 255, 255 - posX * STEP);
+      drawPixelXY(CENTER_X_MAJOR + posX, HEIGHT - deltaHue2 - 1, CHSV(hue, 255, 0));
+      drawPixelXY(CENTER_X_MAJOR + posX, deltaHue2, CHSV(hue, 255, 255 - posX * STEP));
     }
 
     if (pcnt > WIDTH - 1) {
@@ -1249,7 +1249,6 @@ void Hourglass() {
       hue2 = 1;
     }
   }
-
   // имитация переворота песочных часов
   if (hue2 > 0) {
     for (uint8_t x = 0U; x < WIDTH; x++) {
@@ -1538,6 +1537,7 @@ void ChristmasTree() {
     FastLED.clear();
   }
   GreenTree(tree_h);
+
   if (modes[currentMode].Scale < 60) {
     VirtualSnow(1);
   }
@@ -2420,3 +2420,176 @@ void Bamboo() {
   fadeToBlackBy(leds, NUM_LEDS, 60);
   index += STP;
 }
+
+// ========== New Year's Сard ===========
+//             © SlingMaster
+//           Новорічна листівка
+// --------------------------------------
+
+void NewYearsCard() {
+  static const uint8_t gamma[3][30] = {
+    {
+      0x20, 0x20, 0x48, 0x45, 0x50, 0x50, 0x59, 0x20, 0x4E, 0x45,
+      0x57, 0x20, 0x59, 0x45, 0x41, 0x52, 0x21, 0x20, 0x20, 0x20,
+      0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x00, 0x02
+    },
+    {
+      0x20, 0x20, 0xD0, 0x97, 0x20, 0xD0, 0x9D, 0xD0, 0x9E, 0xD0,
+      0x92, 0xD0, 0x98, 0xD0, 0x9C, 0x20, 0xD0, 0xA0, 0xD0, 0x9E,
+      0xD0, 0x9A, 0xD0, 0x9E, 0xD0, 0x9C, 0x21, 0x20, 0x00, 0x02
+    },
+    {
+      0x20, 0x20, 0x20, 0xD0, 0x9F, 0xD0, 0xA3, 0xD0, 0xA2, 0xD0,
+      0x98, 0xD0, 0x9D, 0x20, 0xD0, 0xA5, 0xD0, 0xA3, 0xD0, 0x99,
+      0xD0, 0x9B, 0xD0, 0x9E, 0x21, 0x21, 0x21, 0x20, 0x00, 0x02
+    }
+  };
+
+  const byte GRID = WIDTH / 4U;
+  static int64_t frameCount =  0;
+  const byte END = WIDTH - GRID; // + 2;
+  const byte tree_h = (HEIGHT > 24) ? 24 : HEIGHT;
+  const float STEP = 16.0 / HEIGHT;
+  const byte MAX = 3U;
+  static byte dX;
+  static bool direct;
+  static byte divider;
+  static byte index;
+  static byte shadow = 2;
+
+
+  if (loadingFlag) {
+#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      //                     scale | speed
+      setModeSettings(random8(100U), random8(40, 160U));
+    }
+#endif //#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    loadingFlag = false;
+
+    divider = floor(modes[currentMode].Scale / 25);
+    index = 0;
+    if (eff_valid < 2) {
+      if (divider >= 2)    {
+        shadow = 1;
+      } else {
+        shadow = 0;
+      }
+    } else {
+      shadow = eff_valid;
+    }
+
+    direct = true;
+    dX = GRID;
+    pcnt = 0;
+    frameCount = 0;
+    hue2 == 32;
+    clearNoiseArr();
+    FastLED.clear();
+  }
+
+  EVERY_N_MILLISECONDS(1000 / 60) {
+    frameCount++;
+    pcnt++;
+  }
+
+  uint8_t t1 = cos8((42 * frameCount) / 30);
+  uint8_t t2 = cos8((35 * frameCount) / 30);
+  uint8_t t3 = cos8((38 * frameCount) / 30);
+  uint8_t r = 0;
+  uint8_t g = 0;
+  uint8_t b = 0;
+
+  if (direct) {
+    if (dX < (END - GRID)) {
+      dX++;
+      index = 0;
+    }
+  } else {
+    if (dX > 0) {
+      dX--;
+    }
+  }
+  if (pcnt > 80) {
+    pcnt = 0;
+    direct = !direct;
+  }
+
+  for (uint16_t y = 0; y < HEIGHT; y++) {
+    for (uint16_t x = 0; x < WIDTH; x++) {
+      if (x >= END - dX) {
+        r = sin8((x - 8) * cos8((y + 20) * 4) / 4);
+        g = cos8((y << 3) + t1 + cos8((t3 >> 2) + (x << 3)));
+        b = cos8((y << 3) + t2 + cos8(t1 + x + (g >> 2)));
+      } else {
+        if (x < (END - 1 - dX)) {
+          // gradient -------
+          r = (shadow == gamma[shadow][29]) ? 200U : 0;
+          g = divider == 2U ? 0 : y * 2;
+          b = divider == 2U ? 0 : 96U + y * 2;
+        } else {
+          // line gold -------
+          r = 160U;
+          g = 144U;
+          b = 64U;
+        }
+      }
+      uint8_t val = dX * 16;
+      if (r > val) {
+        r = r - val;
+      } else {
+        r = 0;
+      }
+
+      r = exp_gamma[r];
+      g = exp_gamma[g];
+      b = exp_gamma[b];
+
+      leds[XY(x, y)] = CRGB(r, g, b);
+    }
+    hue++;
+  }
+  
+  float delta = 0.0;
+  uint8_t posX = 0;
+  for (uint8_t x = 0U; x < END - dX; x++) {
+    if (x % 8 == 0) {
+      // nature -----
+      delta = 0.0;
+      for (uint8_t y = 2U; y < tree_h; y++) {
+        if (y % 3 == 0U) {
+          uint8_t posX = delta;
+          DrawLine(x - MAX + posX - deltaValue, y, x + MAX - posX - deltaValue, y, 0x007F00);
+          delta = delta + STEP;
+          if ( delta > MAX) delta = MAX;
+        }
+      }
+      if ((x - deltaValue ) >= 0) {
+        gradientVertical( x - deltaValue, 0U, x - deltaValue, tree_h, 90U, 90U, 190U, 96U, 255U);
+      }
+    }
+  }
+
+  VirtualSnow(divider);
+  // restore background --------
+  if ((gamma[shadow][index] != 32U) & (dX > (END - GRID - 1))) {
+    drawLetter((shadow == 0U) ? shadow : 208, gamma[shadow][index], CENTER_X_MINOR - 1, CRGB::Red, 1);
+  }
+
+  if (pcnt % 4U == 0U) {
+    index++;
+    if (gamma[shadow][index] > 0xC0) {
+      index++;
+    }
+    if (index > 28) {
+      index = 0;
+    }
+  }
+
+  deltaValue++;
+  if (deltaValue >= 8) {
+    deltaValue = 0;
+  }
+  hue2 += 2;
+}
+

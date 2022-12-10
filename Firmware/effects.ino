@@ -674,7 +674,7 @@ void pulseRoutine(uint8_t PMode) {
           _pulse_color = CHSV(hue2, _sat, _dark);
           break;
       }
-      drawCircle(emitterX, emitterY, i, _pulse_color  );
+      drawCircle(emitterX, emitterY, i, _pulse_color);
     }
   } else {
     emitterX = random8(WIDTH - 5U) + 3U;
@@ -685,7 +685,7 @@ void pulseRoutine(uint8_t PMode) {
     step = 0;
   }
   step++;
-  //if (modes[currentMode].Speed & 0x01) blurScreen(10U);// убираем квадратики внутри кругов пульса
+  if (modes[currentMode].Speed & 0x01) blurScreen(10U); // убираем квадратики внутри кругов пульса
 }
 
 // =====================================
@@ -1330,10 +1330,9 @@ void lightBallsRoutine() {
   // an automatic trend toward black -- by design.
   //  uint8_t blurAmount = dim8_raw(beatsin8(3, 64, 100));
   //  blur2d(leds, WIDTH, HEIGHT, blurAmount);
+ 
   blurScreen(dim8_raw(beatsin8(3, 64, 100)));
 
-  // blur2d(leds, WIDTH, HEIGHT, 128);
-  // dimAll(200);
   // Use two out-of-sync sine waves
   uint16_t i = beatsin16( 79, 0, 255); //91
   uint16_t j = beatsin16( 67, 0, 255); //109
