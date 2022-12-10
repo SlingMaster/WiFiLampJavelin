@@ -124,6 +124,7 @@ GButton touch(BTN_PIN, HIGH_PULL, NORM_OPEN); // для физической (н
 
 #ifdef  JAVELIN
 GButton touchJavelin(BTN_JAVELIN_PIN, HIGH_PULL, NORM_OPEN); // для фізичної кнопки управління режимами Javelin
+bool diagnostic = false;
 #endif
 
 #ifdef OTA

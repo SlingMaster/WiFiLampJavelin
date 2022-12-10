@@ -3,6 +3,9 @@ uint32_t level_timeout;
 
 // =====================================
 void Camouflage(uint8_t theme) {
+  if (theme > 2) {
+    theme = 1;
+  }
   const uint32_t dataColors[3][5] = {
     { 0x022401, 0x0F1401, 0x030402, 0x010200, 0x031600 },  // ліс
     { 0x020134, 0x030114, 0x020203, 0x050F18, 0x000616 },  // море
@@ -41,6 +44,7 @@ void JavelinStatic(uint8_t val) {
       JavelinLight(0x000000, 0x000000, 0x000000);
       digitalWrite(MB_LED_PIN, HIGH);
 #endif
+      lendLease = false;
       runEffect();
       ONflag = true;
       break;
@@ -71,6 +75,20 @@ void JavelinStatic(uint8_t val) {
         ONflag = true;
         step = 4;
       }
+      break;
+
+    case 3: // done diagnostic -----
+      diagnostic = false;
+#ifdef JAVELIN
+      digitalWrite(MB_LED_PIN, HIGH);
+#endif
+      Camouflage(0);
+      lendLease = true;
+      ONflag = false;
+      FPSdelay = 5U;
+      step = 0;
+      FastLED.setBrightness(250);
+      FastLED.show();
       break;
   }
 }
@@ -142,6 +160,7 @@ void JavelinDiagnostic(uint8_t val) {
       FastLED.show();
       return;
   }
+
 #ifdef JAVELIN
   JavelinLight(color, color, color);
   DrawLevel(0, floor(val / 2.85), 35, CHSV{180, 255, MATRIX_LEVEL});
@@ -378,7 +397,7 @@ void buttonJavelinTick() {
   }
 
   // кнопка нажата и удерживается
-  if (touchJavelin.isStep()) {
+  if (touchJavelin.isStep() | diagnostic) {
     int8_t but = touchJavelin.getHoldClicks();
 #ifdef GENERAL_DEBUG
     // LOG.printf_P(PSTR("• Progress : %03d | %02d\n\r"), progress, but);
@@ -386,9 +405,10 @@ void buttonJavelinTick() {
     // 1 click | start diagnostic =======
     JavelinDiagnostic(progress);
     if (progress == 110) {
+      diagnostic = false;
       JavelinStatic(0);
     } else {
-      delay(10);
+      delay((diagnostic ? 150 : 10));
       progress++;
     }
   }

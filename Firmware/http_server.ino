@@ -364,7 +364,18 @@ void handle_cmd() {
       JavelinStatic(val);
       return;
     case CMD_DIAGNOSTIC:
-      JavelinDiagnostic(val);
+#ifdef  JAVELIN
+      if (val == 0) {
+        progress = 0;
+        diagnostic = true;
+      }
+      if (val == 255) {
+        progress = 0;
+        diagnostic = false;
+      }
+      body += getDiagnosticProgress();
+      sendResponse(cmd, body);
+#endif
       return;
     default:
       break;
@@ -373,6 +384,17 @@ void handle_cmd() {
   body += getCurState();
   sendResponse(cmd, body);
 }
+// ======================================
+#ifdef JAVELIN
+String getDiagnosticProgress() {
+  String lamp_state = "";
+  lamp_state += getLampID() + ",";
+  lamp_state += "\"power\":" + String(ONflag) + ",";
+  lamp_state += "\"javelin\":1,";
+  lamp_state += "\"progress\":" + String(progress);
+  return lamp_state;
+}
+#endif
 
 // ======================================
 String getInfo() {
