@@ -2421,6 +2421,138 @@ void Bamboo() {
   index += STP;
 }
 
+// ============ Light Filter ============
+//             © SlingMaster
+//              Cвітлофільтр
+// --------------------------------------
+void LightFilter() {
+  static int64_t frameCount =  0;
+  const byte END = WIDTH - 1;
+  static byte dX;
+  static bool direct;
+  static byte divider;
+  static byte deltaValue = 0;
+
+  if (loadingFlag) {
+#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      //                     scale | speed
+      setModeSettings(random8(100U), random8(40, 160U));
+    }
+#endif //#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    loadingFlag = false;
+
+    divider = floor(modes[currentMode].Scale / 25);
+    direct = true;
+    dX = 1;
+    pcnt = 0;
+    frameCount = 0;
+    hue2 == 32;
+    clearNoiseArr();
+    FastLED.clear();
+  }
+
+  // EVERY_N_MILLISECONDS(1000 / 30) {
+  frameCount++;
+  pcnt++;
+  // }
+
+  uint8_t t1 = cos8((42 * frameCount) / 30);
+  uint8_t t2 = cos8((35 * frameCount) / 30);
+  uint8_t t3 = cos8((38 * frameCount) / 30);
+  uint8_t r = 0;
+  uint8_t g = 0;
+  uint8_t b = 0;
+
+  if (direct) {
+    if (dX < END) {
+      dX++;
+    }
+  } else {
+    if (dX > 0) {
+      dX--;
+    }
+  }
+  if (pcnt > 128) {
+    pcnt = 0;
+    direct = !direct;
+    if (divider > 2) {
+      if (dX == 0) {
+        deltaValue++;
+        if (deltaValue > 2) {
+          deltaValue = 0;
+        }
+      }
+    } else {
+      deltaValue = divider;
+    }
+
+  }
+
+  for (uint16_t y = 0; y < HEIGHT; y++) {
+    for (uint16_t x = 0; x < WIDTH; x++) {
+      if (x != END - dX) {
+        r = cos8((y << 3) + (t1 >> 1) + cos8(t2 + (x << 3)));
+        g = cos8((y << 3) + t1 + cos8((t3 >> 2) + (x << 3)));
+        b = cos8((y << 3) + t2 + cos8(t1 + x + (g >> 2)));
+
+      } else {
+        // line gold -------
+        r = 255U;
+        g = 255U;
+        b = 255U;
+      }
+
+      uint8_t val = dX * 8;
+      switch (deltaValue) {
+        case 0:
+          if (r > val) {
+            r = r - val;
+          } else {
+            r = 0;
+          }
+          if (g > val) {
+            g = g - val / 2;
+          } else {
+            g = 0;
+          }
+          break;
+        case 1:
+          if (g > val) {
+            g = g - val;
+          } else {
+            g = 0;
+          }
+          if (b > val) {
+            b = b - val / 2;
+          } else {
+            b = 0;
+          }
+          break;
+        case 2:
+          if (b > val) {
+            b = b - val;
+          } else {
+            b = 0;
+          }
+          if (r > val) {
+            r = r - val / 2;
+          } else {
+            r = 0;
+          }
+          break;
+      }
+
+      r = exp_gamma[r];
+      g = exp_gamma[g];
+      b = exp_gamma[b];
+
+      leds[XY(x, y)] = CRGB(r, g, b);
+    }
+  }
+  hue++;
+}
+
 // ========== New Year's Сard ===========
 //             © SlingMaster
 //           Новорічна листівка
