@@ -78,8 +78,8 @@ void JavelinStatic(uint8_t val) {
       break;
 
     case 3: // done diagnostic -----
-      diagnostic = false;
 #ifdef JAVELIN
+      diagnostic = false;
       digitalWrite(MB_LED_PIN, HIGH);
 #endif
       Camouflage(0);
