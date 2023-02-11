@@ -155,6 +155,8 @@ File fsUploadFile;  // Для файловой системы
 
 
 // --- ИНИЦИАЛИЗАЦИЯ ПЕРЕМЕННЫХ -------
+uint8_t global_br;
+bool gb;
 uint16_t localPort = ESP_UDP_PORT;
 char packetBuffer[MAX_UDP_BUFFER_SIZE];                     // buffer to hold incoming packet
 char inputBuffer[MAX_UDP_BUFFER_SIZE];
@@ -261,8 +263,8 @@ void setup() {
   LOG.print(F("\nСтарт файловой системы\n"));
   FS_init();  //Запускаем файловую систему
   LOG.print(F("Чтение файла конфигурации\n"));
-  configSetup = readFile("config.json", 1024);
-  LOG.println(configSetup);
+  configSetup = readFile("config.json", 2048);
+  LOG.print("configSetup : " + configSetup);
   //Настраиваем и запускаем SSDP интерфейс
   LOG.print(F("Старт SSDP\n"));
   SSDP_init();
@@ -283,6 +285,9 @@ void setup() {
   PRINT_TIME = jsonReadtoInt(configSetup, "print_time");
   custom_eff = jsonReadtoInt(configSetup, "custom_eff");
   camouflage = jsonReadtoInt(configSetup, "camouflage");
+  gb = (jsonReadtoInt(configSetup, "gb") == 1);
+  global_br = jsonReadtoInt(configSetup, "global_br");
+
 
   if (jsonReadtoInt(configSetup, "fav_effect") >= MODE_AMOUNT) {
     jsonWrite(configSetup, "fav_effect", EFF_MATRIX);
@@ -445,7 +450,13 @@ void setup() {
     LOG.print(F("Старт WiFi в режиме точки доступа\n"));
     LOG.print(F("IP адрес: "));
     LOG.println(WiFi.softAPIP());
+
+
 #ifdef GENERAL_DEBUG
+    byte mac[6];
+    WiFi.macAddress(mac);
+    LOG.println("mac : " + String(mac[0], HEX) + ":" + String(mac[1], HEX) + ":" + String(mac[2], HEX) + ":" + String(mac[3], HEX) + ":" + String(mac[4], HEX) + ":" + String(mac[5], HEX));
+
     LOG.println ("*******************************************");
     LOG.print ("Heap Size after connection AP mode = ");
     LOG.println(system_get_free_heap_size());
@@ -518,14 +529,22 @@ void loop() {
         if (ESP_CONN_TIMEOUT--) {
           LOG.print(F("."));
           ESP.wdtFeed();
-        }
-        else {
+        } else {
           // Если не удалось подключиться запускаем в режиме AP
           espMode = 0;
+#ifdef USE_ROUTER_ONLY
+          String _ssid = jsonRead(configSetup, "ssid");
+          String _password = jsonRead(configSetup, "password");
+          if ((_ssid == "") || (_password == "")) {
+            // first start ------
+            jsonWrite(configSetup, "ESP_mode", (int)espMode);
+            saveConfig();
+          }
+#else
           jsonWrite(configSetup, "ESP_mode", (int)espMode);
           saveConfig();
+#endif
           ESP.restart();
-          //StartAPMode();
         }
       }
     } else {

@@ -11,7 +11,7 @@ void initWorkGroup(String lampList) {
   jsonWrite(configSetup, "workgroup", WORKGROUP);
   LAMP_LIST = lampList;
   jsonWrite(configSetup, "lamp_list", LAMP_LIST);
-  writeFile("config.json", configSetup);
+  saveConfig();
 #ifdef GENERAL_DEBUG
   LOG.println("\n• INIT WORKGROUP • ");
   LOG.println("• Workgroup Lamp : " + LAMP_LIST);
@@ -22,7 +22,7 @@ void initWorkGroup(String lampList) {
 void resetWorkGroup() {
   WORKGROUP = 0;
   jsonWrite(configSetup, "workgroup", WORKGROUP);
-  writeFile("config.json", configSetup);
+  saveConfig();
 #ifdef GENERAL_DEBUG
   LOG.println("\n- RESET WORKGROUP - ");
 #endif

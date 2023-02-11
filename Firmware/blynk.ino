@@ -156,8 +156,7 @@ void updateRemoteBlynkParams() {
   }
 }
 
-void processParams(char *prefix, const char *paramValue)
-{
+void processParams(char *prefix, const char *paramValue) {
   char charBuf[50];
   String value = prefix + String(paramValue);
   value.toCharArray(charBuf, 50);

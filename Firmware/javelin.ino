@@ -346,7 +346,7 @@ void ClearLevelIndicator() {
 void javelinConnect(uint8_t color) {
   progress++;
 #ifdef GENERAL_DEBUG
-  LOG.printf_P(PSTR("• javelinConnec | espMode • %d | %d \n\r"), espMode, progress);
+  // LOG.printf_P(PSTR("• javelinConnec | espMode • %d | %d \n\r"), espMode, progress);
 #endif
 
   uint8_t br = 64U + 32 * progress;
@@ -474,9 +474,9 @@ void JavelinLight(CRGB val1, CRGB val2, CRGB val3) {
 
 // ======================================
 uint8_t NormalizeBrightness() {
-  int br = constrain(200 - FastLED.getBrightness(), 48, 200);
-  //  LOG.printf_P(PSTR("Brightness : %03d | REAL • %03d | BR • %d\n\r"), modes[currentMode].Brightness, FastLED.getBrightness(), br);
-  return br;
+  int bri = constrain(200 - FastLED.getBrightness(), 48, 200);
+  //  LOG.printf_P(PSTR("Brightness : %03d | REAL • %03d | BR • %d\n\r"), modes[currentMode].Brightness, FastLED.getBrightness(), bri);
+  return bri;
 }
 
 // ======================================
@@ -535,7 +535,12 @@ void StateLampIndicator() {
   }
   DrawLevel(3, sp_led, bar_size, CHSV{90, 255, br_level});
   // brightness --
-  val = floor(FastLED.getBrightness() * bar_size / 255);
+  if (gb) {
+    val = global_br * bar_size / 127;
+  } else {
+    val = floor(FastLED.getBrightness() * bar_size / 255);
+  }
+
   if (((level_timeout % DELAY) == 0U) & (br_led != val)) {
     if (br_led < val) {
       br_led++;

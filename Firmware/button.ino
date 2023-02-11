@@ -44,10 +44,14 @@ void showWarning(
   loadingFlag = true;                                       // принудительное отображение текущего эффекта (того, что был активен перед предупреждением)
 }
 
-
 // ---------------------------------------
 void runEffect() {
-  FastLED.setBrightness(modes[currentMode].Brightness);
+  if (gb) {
+    global_br = jsonReadtoInt(configSetup, "global_br");
+    FastLED.setBrightness(map(modes[currentMode].Brightness + global_br, 1, 511, 1U, 250U));
+  } else {
+    FastLED.setBrightness(modes[currentMode].Brightness);
+  }
   updateSets();
   if (random_on && FavoritesManager::FavoritesRunning) {
     selectedSettings = 1U;
@@ -130,17 +134,29 @@ void changeBrightness(bool Direction) {
   uint8_t delta = modes[currentMode].Brightness < 10U // определение шага изменения яркости: при яркости [1..10] шаг = 1, при [11..16] шаг = 3, при [17..255] шаг = 15
                   ? 1U
                   : 5U;
-
-  modes[currentMode].Brightness =
-    constrain(Direction
-              ? modes[currentMode].Brightness + delta
-              : modes[currentMode].Brightness - delta,
-              1, 255);
+  if (gb) {
+    global_br =  constrain(Direction
+                           ? global_br + delta
+                           : global_br - delta,
+                           1, 127);
+    uint16_t tempBri =  modes[currentMode].Brightness + global_br;
+    if (tempBri > 255) {
+      tempBri = 255;
+    }
+    FastLED.setBrightness(tempBri);
+  } else {
+    modes[currentMode].Brightness =
+      constrain(Direction
+                ? modes[currentMode].Brightness + delta
+                : modes[currentMode].Brightness - delta,
+                1, 255);
+    FastLED.setBrightness(modes[currentMode].Brightness);
+  }
 
 #ifdef USE_MULTIPLE_LAMPS_CONTROL
-  multipleLampControl ();
+  multipleLampControl();
 #endif  //USE_MULTIPLE_LAMPS_CONTROL
-  FastLED.setBrightness(modes[currentMode].Brightness);
+
 #ifdef GENERAL_DEBUG
   LOG.printf_P(PSTR("Новое значение яркости: %d\n\r"), modes[currentMode].Brightness);
 #endif

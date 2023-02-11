@@ -8,8 +8,8 @@ void parseUDP() {
     packetBuffer[n] = '\0';
     strcpy(inputBuffer, packetBuffer);
 #ifdef GENERAL_DEBUG
-    LOG.print(F("Inbound UDP packet: "));
-    LOG.println(inputBuffer);
+//    LOG.print(F("Inbound UDP packet: "));
+//    LOG.println(inputBuffer);
 #endif
     if (Udp.remoteIP() == WiFi.localIP())  {                // не реагировать на свои же пакеты
       return;

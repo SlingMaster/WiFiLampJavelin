@@ -284,7 +284,7 @@ void handle_cmd() {
       configSetup = valStr;
       LOG.println("config save:" + configSetup);
       body += "\"cfg_save\":\"OK\",";
-      writeFile("config.json", configSetup);
+      saveConfig();
       valStr = "";
       warnDinamicColor(0);
       break;
@@ -293,6 +293,19 @@ void handle_cmd() {
       body += "\"cfg_save\":\"OK\",";
       saveAlarm(valStr);
       valStr = "";
+      break;
+
+    case CMD_GLOBAL_BRI:
+      loadingFlag = false;
+      gb = (val == 1);
+      jsonWrite(configSetup, "gb", val);
+      if (val == 1) {
+        global_br = jsonReadtoInt(configSetup, "global_br") || 128;
+      } else {
+        jsonWrite(configSetup, "global_br", global_br);
+      }
+      saveConfig();
+      runEffect();
       break;
     // fs commands ----------
     case CMD_FS_DIR:
@@ -346,6 +359,7 @@ void handle_cmd() {
       break;
 
     case CMD_RESET:
+      saveConfig();
       showWarning(CRGB::MediumSeaGreen, 2000U, 500U);
       ESP.restart();
       return;
@@ -422,6 +436,7 @@ String getInfo() {
 
 // ======================================
 String getCurState() {
+  uint8_t bright = gb ? global_br * 2 : modes[currentMode].Brightness;
   String lamp_state = "";
   lamp_state += getLampID() + ",";
   lamp_state += "\"pass\":\"" + AP_PASS + "\",";
@@ -434,7 +449,8 @@ String getCurState() {
   lamp_state += "\"cycle\":" + String(FavoritesManager::FavoritesRunning) + ",";
   lamp_state += "\"list_idx\":" + String(currentMode) + ",";
   lamp_state += "\"max_eff\":" + String(MODE_AMOUNT) + ",";
-  lamp_state += "\"bright\":" + String(modes[currentMode].Brightness) + ",";
+  lamp_state += "\"gb\":" + String(gb) + ",";
+  lamp_state += "\"bright\":" + String(bright) + ",";
   lamp_state += "\"speed\":" + String(modes[currentMode].Speed) + ",";
   lamp_state += "\"free_heap\":" + String(system_get_free_heap_size()) + ",";
 #ifdef  JAVELIN
