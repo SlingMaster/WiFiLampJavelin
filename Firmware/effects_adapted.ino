@@ -1,3 +1,4 @@
+
 // ============= Tixy Land ==============
 //        © Martin Kleppe @aemkei
 //github.com/owenmcateer/tixy.land-display
@@ -325,8 +326,8 @@ void TixyLand() {
 // =====================================
 //                Stars
 //            © Marc Merlin
-//               доробки 
-//    © SottNick © kostyamat, © kDn 
+//               доробки
+//    © SottNick © kostyamat, © kDn
 //      Adaptation © SlingMaster
 //                Зірки
 // =====================================

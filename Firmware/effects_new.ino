@@ -5,7 +5,10 @@
   frames = 5 | количество кадров
   масив на 5 кадров 16x16 | размером w * h * frames * color + header = 2 576
   размер можно увеличивать по мере надобности, постоянно занимает место в памяти
-  возможно в будущем будет сделано динамическим */
+  возможно в будущем будет сделано динамическим
+  • FastLED Colors
+  http://fastled.io/docs/3.1/struct_c_r_g_b.html
+*/
 
 uint8_t const exp_gamma[256] = {
   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   1,   1,   1,
@@ -899,76 +902,59 @@ void BotswanaRivers() {
 //            EFF_WATERCOLOR
 //               Акварель
 //---------------------------------------
-void SmearPaint(uint8_t obj[trackingOBJECT_MAX_COUNT]) {
-  uint8_t divider;
-  int temp;
-  static const uint32_t colors[6][8] PROGMEM = {
-    {0x2F0000,  0xFF4040, 0x6F0000, 0xAF0000, 0xff5f00, CRGB::Red, 0x480000, 0xFF0030},
-    {0x002F00, CRGB::LawnGreen, 0x006F00, 0x00AF00, CRGB::DarkMagenta, 0x00FF00, 0x004800, 0x00FF30},
-    {0x002F1F, CRGB::DarkCyan, 0x00FF7F, 0x007FFF, 0x20FF5F, CRGB::Cyan, 0x004848, 0x7FCFCF },
-    {0x00002F, 0x5030FF, 0x00006F, 0x0000AF, CRGB::DarkCyan, 0x0000FF, 0x000048, 0x5F5FFF},
-    {0x2F002F, 0xFF4040, 0x6F004A, 0xFF0030, CRGB::DarkMagenta, CRGB::Magenta, 0x480048, 0x3F00FF},
-    {CRGB::Blue, CRGB::Red, CRGB::Gold, CRGB::Green, CRGB::DarkCyan, CRGB::DarkMagenta, 0x000000, 0xFF7F00 }
-  };
-  if (trackingObjectHue[5] == 1) {  // direction >>>
-    obj[1]++;
-    if (obj[1] >= obj[2]) {
-      trackingObjectHue[5] = 0;     // swap direction
-      obj[3]--;                     // new line
-      if (step % 2 == 0) {
-        obj[1]++;
-      } else {
-        obj[1]--;
+void  incDec() {
+  deltaHue2 -= step;
+  if (deltaHue2 < step) {
+    hue2 = 7;
+  } else {
+    /* swap direction ------
+      and next rows ------- */
+    if (hue2 % 2 == 0) {
+      hue++;          /* --> */
+      if (hue > 7 ) {
+        hue = 7U;
+        hue2++;
       }
-
-      obj[0]--;
-    }
-  } else {                          // direction <<<
-    obj[1]--;
-    if (obj[1] <= (obj[2] - obj[0])) {
-      trackingObjectHue[5] = 1;     // swap direction
-      obj[3]--;                     // new line
-      if (obj[0] >= 1) {
-        temp = obj[0] - 1;
-        if (temp < 0) {
-          temp = 0;
-        }
-        obj[0] = temp;
-        obj[1]++;
+    } else {
+      hue--;          /* <-- */
+      if (hue >= 255) {
+        hue = 0U;
+        hue2++;
       }
     }
+    pcnt++;
   }
-
-  if (obj[3] == 255) {
-    deltaHue = 255;
-  }
-
-  divider = floor((modes[currentMode].Scale - 1) / 16.7);
-  if ( (obj[1] >= WIDTH) || (obj[3] == obj[4]) ) {
-    // deltaHue value == 255 activate -------
-    // set new parameter for new smear ------
-    deltaHue = 255;
-  }
-  drawPixelXY(obj[1], obj[3], colors[divider][hue]);
-
-  // alternative variant without dimmer effect
-  // uint8_t h = obj[3] - obj[4];
-  // uint8_t br = 266 - 12 * h;
-  // if (h > 0) {
-  // drawPixelXY(obj[1], obj[3], makeDarker(colors[divider][hue], br));
-  // } else {
-  // drawPixelXY(obj[1], obj[3], makeDarker(colors[divider][hue], 240));
-  // }
 }
-
-
 
 //---------------------------------------
 void Watercolor() {
-  // #define DIMSPEED (254U - 500U / WIDTH / HEIGHT)
-  uint8_t divider;
-  if (loadingFlag) {
+  static const uint32_t colors[3][6] PROGMEM = {
+    //LemonChiffon Coral Gold DarkGoldenrod PaleVioletRed Chocolate,  CRGB:: PaleTurquoise, CRGB::RoyalBlue,  CRGB::LightSlateGray
+    {CRGB::Crimson, CRGB::OrangeRed, CRGB::MistyRose, CRGB::PaleVioletRed, CRGB::DarkOrange, CRGB::IndianRed},
+    {CRGB::ForestGreen, CRGB::PaleGreen, CRGB::LawnGreen, CRGB::Green, CRGB::DarkMagenta, CRGB::DarkGreen},
+    {CRGB::DarkCyan, CRGB::Turquoise, CRGB::LightBlue, CRGB::Navy, CRGB::Blue, CRGB::Cyan}
+  };
+  static const bool smear [7][8] = {
+    /*      0  1  2  3  4  5  6  7*/
+    /*0*/ {0, 0, 1, 1, 1, 1, 1, 0},
+    /*1*/ {1, 1, 1, 1, 1, 1, 0, 0},
+    /*2*/ {0, 0, 1, 1, 1, 1, 1, 1},
+    /*3*/ {0, 0, 1, 1, 1, 1, 0, 0},
+    /*4*/ {0, 0, 0, 1, 1, 1, 1, 0},
+    /*5*/ {0, 0, 0, 0, 1, 1, 0, 0},
+    /*6*/ {0, 0, 0, 0, 0, 0, 1, 0}
+  };
+  static uint32_t nextColor;
+  static uint8_t divider;
+  static CRGB rgb;
+  static byte idx;
 
+  uint8_t r;
+  uint8_t g;
+  uint8_t b;
+  // ----------------
+
+  if (loadingFlag) {
 #if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
     if (selectedSettings) {
       //                          scale | speed 250
@@ -976,64 +962,105 @@ void Watercolor() {
     }
 #endif
     loadingFlag = false;
+    idx = 0;
     FastLED.clear();
-    deltaValue = 255U - modes[currentMode].Speed + 1U;
-    step = deltaValue;                    // чтообы при старте эффекта сразу покрасить лампу
+    divider = floor((modes[currentMode].Scale - 1) / 25);
     hue = 0;
-    deltaHue = 255;                       // last color
-    trackingObjectHue[1] = floor(WIDTH * 0.25);
-    trackingObjectHue[3] = floor(HEIGHT * 0.25);
-  }
-
-  if (step >= deltaValue) {
-    step = 0U;
-    // LOG.printf_P(PSTR("%03d | log: %f | val: %03d | divider: %d \n\r"), modes[currentMode].Brightness, log(modes[currentMode].Brightness), deltaHue2, divider);
+    hue2 = 7;
   }
 
   // ******************************
   // set random parameter for smear
   // ******************************
-  if (deltaHue == 255) {
+  if (hue2 > 6) {
+    /*   x*/   emitterX = random8(0, WIDTH - 5);
+    /*   y*/   emitterY  = random8(3, HEIGHT);
+    /* bri*/   deltaHue2 = 255U;
+    /*step*/   step = random8(8U, 18U);
+    hue = 0;
+    hue2 = 0;
+    hue2 = 0;
+    deltaHue2 = 255;
+    if (divider > 2) {
+      r = random8(96);
+      g = random8(96);
+      b = random8(96);
+    } else {
+      nextColor = colors[divider][idx];
+    }
 
-    trackingObjectHue[0] = 4 + random8(floor(WIDTH * 0.25));                // width
-    trackingObjectHue[1] = random8(WIDTH - trackingObjectHue[0]);           // x
-    int temp =  trackingObjectHue[1] + trackingObjectHue[0];
-    if (temp >= (WIDTH - 1)) {
-      temp = WIDTH - 1;
-      if (trackingObjectHue[1] > 1) {
-        trackingObjectHue[1]--;
-      } else {
-        trackingObjectHue[1]++;
+    idx++;
+    if (idx > 6) {
+      idx = 0;
+    }
+
+    //  update frame ----------------
+    if (divider > 2) {
+      blurScreen(20);
+      // dimAll(DIMSPEED);
+    } else {
+      // full scroll to left --------
+      for (uint8_t y = 0U; y < HEIGHT ; y++) {
+        for (uint8_t x = 0U; x < WIDTH; x++) {
+          drawPixelXY(x, y, ((x == WIDTH - 1) ? 0 : getPixColorXY(x + 1U, y)));
+        }
       }
     }
-    trackingObjectHue[2] = temp;                                            // x end
-    trackingObjectHue[3] = 3 + random8(HEIGHT - 4);                         // y
-    temp = trackingObjectHue[3] - random8(3) - 3;
-    if (temp <= 0) {
-      temp = 0;
-    }
-    trackingObjectHue[4] = temp;                                            // y end
-    trackingObjectHue[5] = 1;
-    divider = floor((modes[currentMode].Scale - 1) / 16.7);                 // маштаб задает смену палитры
-    hue = random8(8);
-    //    if (step % 127 == 0) {
-    //      LOG.printf_P(PSTR("BR %03d | SP %03d | SC %03d | divider %d | [ %d ]\n\r"), modes[currentMode].Brightness, modes[currentMode].Speed, modes[currentMode].Scale, divider, hue);
-    //    }
-    hue2 = 255;
-    deltaHue = 0;
+    // ------------------------------
   }
-  // ******************************
-  SmearPaint(trackingObjectHue);
+  // draw smear ---------------------
+  rgb = getPixColorXY(emitterX + hue, emitterY - hue2);
+  switch (idx) {
+    case 0:
+      break;
+    case 1:
+      r = deltaHue2;
+      g = rgb.g * 0.9;
+      b = rgb.b * 0.9;
+      break;
+    case 2:
+      r = rgb.r * 0.9;
+      g = deltaHue2;
+      b = rgb.b * 0.9;
+      break;
+    case 3:
+      r = rgb.r * 0.5;
+      g = rgb.g * 0.5;
+      b = deltaHue2;
+      break;
+    case 4:
+      r = rgb.r * 0.9;
+      g = rgb.g * 0.6;
+      b = deltaHue2;
+      break;
+    case 5:
+      r = rgb.r * 0.6;
+      g = deltaHue2;
+      b = rgb.b * 0.9;
+      break;
+    default:
+      r = rgb.r * 0.5;
+      g = rgb.g * 0.5;
+      b = rgb.b * 0.5;
+      break;
+  }
 
-  // LOG.printf_P(PSTR("%02d | hue2 = %03d | min = %03d \n\r"), step, hue2, deltaHue2);
-  // -------------------------------------
-  //  if (custom_eff == 1) {
-  // dimAll(DIMSPEED);
-  if (step % 4 == 0) {
-    blurScreen(beatsin8(1U, 1U, 6U));
-    // blurRows(leds, WIDTH, 3U, 10U);
+  if (divider > 2) {
+    nextColor = ((long)r << 16L) | ((long)g << 8L) | (long)b;
   }
-  step++;
+
+  // LOG.printf_P(PSTR("divider = %02d | idx = %03d | nextColor = 0x%06x \n\r"), divider, idx, nextColor);
+
+  // ********************************
+  incDec();
+  if (smear[hue2][hue]) {
+    drawPixelXY(emitterX + hue, emitterY - hue2,  nextColor);
+  }
+  incDec();
+  if (smear[hue2][hue]) {
+    drawPixelXY(emitterX + hue, emitterY - hue2, nextColor);
+  }
+  // --------------------------------
 }
 
 // =========== FeatherCandle ============
@@ -2681,7 +2708,7 @@ void NewYearsCard() {
     }
     hue++;
   }
-  
+
   float delta = 0.0;
   uint8_t posX = 0;
   for (uint8_t x = 0U; x < END - dX; x++) {
@@ -2725,3 +2752,72 @@ void NewYearsCard() {
   hue2 += 2;
 }
 
+// ========== Taste of Honey ============
+//         SRS code by © Stepko
+//        Adaptation © SlingMaster
+//               Смак Меду
+// --------------------------------------
+
+void TasteHoney() {
+  byte index;
+  if (loadingFlag) {
+#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      // scale | speed
+      setModeSettings(random8(1U, 255U), random8(150U, 255U));
+    }
+#endif
+    loadingFlag = false;
+    deltaValue = 48;
+    hue = modes[currentMode].Scale * 2.55;
+    index = modes[currentMode].Scale / 10;
+    clearNoiseArr();
+    switch (index) {
+      case 0:
+        currentPalette = PartyColors_p;
+        break;
+      case 1:
+        currentPalette = LavaColors_p;
+        break;
+      case 2:
+      case 3:
+        currentPalette = ForestColors_p;
+        break;
+      case 4:
+        currentPalette = CloudColors_p;
+        break;
+      default :
+        currentPalette = AlcoholFireColors_p;
+        break;
+    }
+    FastLED.clear();
+  }
+
+  fillNoiseLED();
+  memset8(&noise2[1][0][0], 255, (WIDTH + 1) * (HEIGHT + 1));
+  for (byte x = 0; x < WIDTH; x++) {
+    for (byte y = 0; y < HEIGHT; y++) {
+      uint8_t n0 = noise2[0][x][y];
+      uint8_t n1 = noise2[0][x + 1][y];
+      uint8_t n2 = noise2[0][x][y + 1];
+      int8_t xl = n0 - n1;
+      int8_t yl = n0 - n2;
+      int16_t xa = (x * 255) + ((xl * ((n0 + n1) << 1)) >> 3);
+      int16_t ya = (y * 255) + ((yl * ((n0 + n2) << 1)) >> 3);
+
+      CRGB col = CHSV(hue, 255, 255);
+      wu_pixel(xa, ya, &col);
+    }
+  }
+  for (byte i = 0; i < WIDTH; i++) {
+    for (byte j = 0; j < HEIGHT; j++) {
+      uint8_t br = (noise2[1][i][j] < 96) ? 255 : 128; // flashes
+      nblend(leds[XY(i, j)], CHSV(hue, noise2[1][i][j], br), 128);
+    }
+  }
+  deltaValue = abs(128U - hue2) + 32;
+  hue2++;
+}
+
+
+// END ==============

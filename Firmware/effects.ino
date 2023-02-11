@@ -16,6 +16,7 @@ uint8_t shiftHue[HEIGHT];                          // свойство пикс�
 uint8_t shiftValue[HEIGHT];                        // свойство пикселей в размер столбца матрицы ещё одно
 uint16_t ff_x, ff_y, ff_z;                         // большие счётчики
 
+uint8_t noise2[2][WIDTH + 1][HEIGHT + 1];
 
 //массивы состояния объектов, которые могут использоваться в любом эффекте
 #define trackingOBJECT_MAX_COUNT                         (100U)  // максимальное количество отслеживаемых объектов (очень влияет на расход памяти)
@@ -1330,7 +1331,7 @@ void lightBallsRoutine() {
   // an automatic trend toward black -- by design.
   //  uint8_t blurAmount = dim8_raw(beatsin8(3, 64, 100));
   //  blur2d(leds, WIDTH, HEIGHT, blurAmount);
- 
+
   blurScreen(dim8_raw(beatsin8(3, 64, 100)));
 
   // Use two out-of-sync sine waves
@@ -6899,7 +6900,7 @@ void Fire2021Routine() {
 //               Люмeньep
 //              © SottNick
 // =====================================
-#define DIMSPEED (254U - 500U / WIDTH / HEIGHT)
+#define DIMSPEED (254U - floor(550U / WIDTH / HEIGHT + 1.5))
 
 void lumenjerRoutine() {
   if (loadingFlag) {
@@ -6922,25 +6923,28 @@ void lumenjerRoutine() {
     }
     deltaHue = -1;
     deltaHue2 = -1;
-    //hue = CENTER_X_MAJOR;
-    //hue2 = CENTER_Y_MAJOR;
-    dimAll(245U);
+    FastLED.clear();
   }
   dimAll(DIMSPEED);
 
   deltaHue = random8(3) ? deltaHue : -deltaHue;
   deltaHue2 = random8(3) ? deltaHue2 : -deltaHue2;
 #if (WIDTH % 2 == 0 && HEIGHT % 2 == 0)
-  hue = (WIDTH + hue + deltaHue * (bool)random8(64)) % WIDTH;
+  hue = (WIDTH + hue + (int8_t)deltaHue * (bool)random8(64)) % WIDTH;
 #else
-  hue = (WIDTH + hue + deltaHue) % WIDTH;
+  hue = (WIDTH + hue + (int8_t)deltaHue) % WIDTH;
 #endif
-  hue2 = (HEIGHT + hue2 + deltaHue2) % HEIGHT;
+  hue2 = (HEIGHT + hue2 + (int8_t)deltaHue2) % HEIGHT;
 
-  if (modes[currentMode].Scale == 100U)
-    leds[XY(hue, hue2)] += CHSV(random8(), 255U, 255U);
-  else
-    leds[XY(hue, hue2)] += ColorFromPalette(*curPalette, step++);
+  if (modes[currentMode].Scale == 100U) {
+    // leds[XY(hue, hue2)] += CHSV(random8(), 255U, 255U);
+    step += 2;
+    leds[XY(hue, hue2)] = CHSV(step, 255U, 255 - step / 3);
+    leds[XY(WIDTH - hue, HEIGHT - hue2)] = CHSV(step + 128, 255U, 170 + step / 3);
+  } else {
+    leds[XY(hue, hue2)] = ColorFromPalette(*curPalette, step++);
+    leds[XY(WIDTH - hue, HEIGHT - hue2)] = ColorFromPalette(*curPalette, step + 64);
+  }
 }
 
 // =====================================
@@ -7199,6 +7203,8 @@ void FlowerRuta() {
     }
   }
 }
+
+
 
 // =====================================
 //         ЭФФЕКТЫ НА ЛЮБИТЕЛЯ
