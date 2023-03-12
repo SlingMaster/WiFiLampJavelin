@@ -5,7 +5,7 @@ int16_t offset = WIDTH;
 uint32_t scrollTimer = 0LL;
 
 boolean fillString(const char* text, CRGB letterColor, boolean itsText) {
-  
+
   //CRGB letterColor = CHSV(modes[EFF_TEXT].Scale * 2.5 * 2.5, 255U, 255U);
   //Serial.println(text);
   if (!text || !strlen(text)) {
@@ -164,7 +164,7 @@ void drawLetter(uint8_t subleter, uint8_t letter, int8_t offset, CRGB letterColo
       if (TEXT_DIRECTION) {
         if (thisBit) {
           leds[XY(offset + i, TEXT_HEIGHT + j)] = letterColor;
-          drawPixelXY(offset + i + 1, TEXT_HEIGHT + j -1, bgColor);
+          drawPixelXY(offset + i + 1, TEXT_HEIGHT + j - 1, bgColor);
         } else {
           if (bgColor != 1) {
             drawPixelXY(offset + i, TEXT_HEIGHT + j, bgColor);
@@ -173,7 +173,7 @@ void drawLetter(uint8_t subleter, uint8_t letter, int8_t offset, CRGB letterColo
       } else {
         if (thisBit) {
           leds[XY(i, offset + TEXT_HEIGHT + j)] = letterColor;
-          drawPixelXY(offset + i + 1, TEXT_HEIGHT + j -1, bgColor);
+          drawPixelXY(offset + i + 1, TEXT_HEIGHT + j - 1, bgColor);
         }  else {
           if (bgColor != 1) {
             drawPixelXY(i, offset + TEXT_HEIGHT + j, bgColor);

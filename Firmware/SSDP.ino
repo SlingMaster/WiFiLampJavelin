@@ -4,6 +4,7 @@ void SSDP_init(void) {
   HTTP.on("/description.xml", HTTP_GET, []() {
     SSDP.schema(HTTP.client());
   });
+
   // ------------------- Получаем SSDP со страницы
   HTTP.on("/ssdp", HTTP_GET, []() {
     String ssdp = HTTP.arg("ssdp");
@@ -14,6 +15,7 @@ void SSDP_init(void) {
     LAMP_NAME = jsonRead(configSetup, "SSDP");
     HTTP.send(200, "text/plain", "OK"); // отправляем ответ о выполнении
   });
+
   //Если версия  2.0.0 закаментируйте следующую строчку
   SSDP.setDeviceType("upnp:rootdevice");
   SSDP.setSchemaURL("description.xml");
@@ -21,12 +23,11 @@ void SSDP_init(void) {
   SSDP.setName(jsonRead(configSetup, "SSDP"));
   SSDP.setSerialNumber(chipID);
   SSDP.setURL("/");
-  SSDP.setModelName("WifiLamp&Remote");
+  SSDP.setModelName("Firmware | WiFi Led Lamp Javelin");
   SSDP.setModelNumber(chipID + "/" + jsonRead(configSetup, "SSDP"));
 
-
-  SSDP.setModelURL("https://community.alexgyver.ru/threads/wifi-lampa-budilnik-obsuzhdenie-proshivki-ot-gunner47.2418/page-72#post-33652");
+  SSDP.setModelURL("https://github.com/SlingMaster/WiFiLampJavelin");
   SSDP.setManufacturer("© Jeneral Samopal Company");
-  SSDP.setManufacturerURL("https://community.alexgyver.ru/threads/wifi-lampa-budilnik-obsuzhdenie-proshivki-ot-gunner47.2418/page-300#post-110429");
+  SSDP.setManufacturerURL("http://winecard.ltd.ua/Portfolio/portfolio/");
   SSDP.begin();
 }

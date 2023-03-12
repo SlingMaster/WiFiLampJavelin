@@ -102,7 +102,7 @@ void (*FuncEff[MODE_AMOUNT])(void) = {
   WaveRoutine,                // Boлны
   sandRoutine,                // Цвeтныe дpaжe
   ringsRoutine,               // Koдoвый зaмoк
-  cube2dRoutine,              // Kyбик Pyбикa
+  // cube2dRoutine,              // Kyбик Pyбикa
   simpleRain,                 // Tyчкa в бaнкe
   stormyRain,                 // Гроза в банке
   coloredRain,                // Ocaдки
@@ -118,6 +118,7 @@ void (*FuncEff[MODE_AMOUNT])(void) = {
   colorsWine,                 // Вино
   Swirl,                      // Завиток
   Ukraine,                    // Моя краïна Украïна
+  Spermatozoa,                // Генофонд Українців
   OilPaints,                  // Масляные Краски
   Watercolor,                 // Акварель
   BotswanaRivers,             // Реки Ботсваны
@@ -146,7 +147,7 @@ void (*FuncEff[MODE_AMOUNT])(void) = {
   Bamboo,                     // Бамбук
   NewYearsCard,               // Новорічна листівка
   TasteHoney,                 // Смак Меду
-
+  CreativeWatch,              // CreativeWatch
   /* • самое удобное место для добавления нового эффекта • */
   //  ballRoutine,                // Блуждающий кубик
   /* • ------------------------------------------------- • */

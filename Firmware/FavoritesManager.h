@@ -24,7 +24,7 @@ class FavoritesManager {
     static uint8_t FavoriteModes[MODE_AMOUNT];              // массив, каждый элемент которого соответствует флагу "эффект №... добавлен в избранные"
     static uint32_t nextModeAt;                             // ближайшее время переключения на следующий избранный эффект (millis())
     typedef void(*customFuncType)();
-    
+
     // -------------------------------------
     static void SetStatus(char* statusText) {               // помещает в statusText состояние режима работы избранных эффектов
       char buff[6];

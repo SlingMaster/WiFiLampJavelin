@@ -1,8 +1,6 @@
 #pragma once
+class TimerManager {
 
-
-class TimerManager
-{
   public:
     static bool TimerRunning;                               // флаг "таймер взведён"
     static bool TimerHasFired;                              // флаг "таймер отработал"
@@ -13,12 +11,12 @@ class TimerManager
       bool* ONflag,
       bool* settChanged,
       uint32_t* eepromTimeout,
-      void (*changePower)())
-    {
+      void (*changePower)())    {
       if (!TimerManager::TimerHasFired &&
           TimerManager::TimerRunning &&
           millis() >= TimerManager::TimeToFire)
       {
+
 #ifdef GENERAL_DEBUG
         LOG.print(F("Выключение по таймеру\n\n"));
 #endif
@@ -32,10 +30,6 @@ class TimerManager
         changePower();
         *settChanged = true;
         *eepromTimeout = millis();
-
-        //        #ifdef USE_BLYNK короче, раз в Блинке нет управления таймером, то и это мы поддерживать не будем
-        //        updateRemoteBlynkParams();
-        //        #endif
       }
     }
 };

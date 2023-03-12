@@ -178,12 +178,12 @@ static const uint8_t defaultSettings[][4] PROGMEM = {
   {   9, 236,  80,    DYNAMIC}, // Boлны
   {   9, 195,  80,    DYNAMIC}, // Цвeтныe дpaжe
   {  10, 222,  92,    DYNAMIC}, // Koдoвый зaмoк
-  {  10, 231,  89,    DYNAMIC}, // Kyбик Pyбикa
+  //  {  10, 231,  89,    DYNAMIC}, // Kyбик Pyбикa   |  {"n":"Rubik's cube","v":[99,252,1,100,0]},
   {  30, 233,   2,    DYNAMIC}, // Tyчкa в бaнкe
   {  20, 236,  10,    DYNAMIC}, // Гроза в банке
   {  15, 198,  99,    DYNAMIC}, // Ocaдки
   {  15, 225,   1,    DYNAMIC}, // Paзнoцвeтный дoждь
-  {   9, 100,  60,    DYNAMIC}, // Cнeгoпaд       |  {"n":"Снігопад","v":[100,190,0,100,0]},
+  {   9, 100,  60,    DYNAMIC}, // Cнeгoпaд           |  {"n":"Снігопад","v":[100,190,0,100,0]},
   {  20, 199,  54,    DYNAMIC}, // 3вeздoпaд / Meтeль
   {  24, 203,   5,    DYNAMIC}, // Пpыгyны
   {  15, 157,  23,    DYNAMIC}, // Cвeтлячки
@@ -194,9 +194,12 @@ static const uint8_t defaultSettings[][4] PROGMEM = {
   { 180, 200,  10,    DYNAMIC}, // Вино
   {  80, 210,  50,    DYNAMIC}, // Завиток
   {  50, 231,   1,    DYNAMIC}, // Моя краïна Украïна
-  {  55, 125,  50,    DYNAMIC}, // Масляные Краски
+  {  12,  50,  50, SOFT_DELAY}, // Геном «UA»         |  {"n":"Геном «UA»","v":[1,255,1,100,1]}, Genome «UA»
+  {  55, 135,  50,    DYNAMIC}, // Масляные Краски
   {  16, 254,  99,    DYNAMIC}, // Акварель
   {  25, 150,  50,    DYNAMIC}, // Реки Ботсваны
+
+
   // • ------------------------------- •   • ----------- data для json файла ----------- •
   /* рекомендуется сохранять сюда данные из json файла на случай если захотите вернуть
     еффект ( не придется опять подбирать параметры )
@@ -204,7 +207,7 @@ static const uint8_t defaultSettings[][4] PROGMEM = {
   //  {  15, 150,  50,    DYNAMIC}, // Блуждающий кубик  |  {"n":"Блуждающий кубик","v":[30,200,1,100,0]},
   // • --------------------------------------------------------------------------------- •
   {  55, 220,  18,    DYNAMIC}, // Свеча
-  {  40, 215, 100,    DYNAMIC}, // Песочные Часы
+  {  20, 215, 100,    DYNAMIC}, // Пісочний Годинник
   {  10, 175,  60,    DYNAMIC}, // Kонтакти
   {  10, 215,  50,    DYNAMIC}, // Радіальна хвиля
   {  22,  35,  50,    DYNAMIC}, // Вогонь з іскрами   |  {"n":"Вогонь з іскрами","v":[20,100,1,100,0]},
@@ -222,13 +225,14 @@ static const uint8_t defaultSettings[][4] PROGMEM = {
   {  11, 250,  65,    DYNAMIC}, // HandFan            |  {"n":"Опахало","v":[200,255,1,100,1]}, Hand Fan
   {  10, 128,  50,    DYNAMIC}, // Плазмові Хвилі     |  {"n":"Плазмові Хвилі","v":[127,128,1,100,0]}, Plasma Waves
   {   8, 254,   0, SOFT_DELAY}, // Tixi Land          |  {"n":"Tixy Land","v":[1,254,1,100,1]}, Tixy Land
-  {   8, 215,  99,    DYNAMIC}, // Зірки              |  {"n":"Зірки","v":[80,254,1,100,0]}, Stars 
+  {   8, 215,  99,    DYNAMIC}, // Зірки              |  {"n":"Зірки","v":[80,254,1,100,0]}, Stars
   {  12, 160,  95,    DYNAMIC}, // Cвітлофільтр       |  {"n":"Cвітлофільтр","v":[80,255,1,100,0]}, LightFilter
   {  12, 215,  90,    DYNAMIC}, // Бамбук             |  {"n":"Бамбук","v":[100,255,1,100,0]}, Bamboo,
-  {  12, 128,  75,    DYNAMIC}, // Новорічна листівка |  {"n":"Новорічна листівка","v":[50,160,1,100,0]}, New Year's Сard 
+  {  12, 128,  75,    DYNAMIC}, // Новорічна листівка |  {"n":"Новорічна листівка","v":[50,160,1,100,0]}, New Year's Сard
   {  12, 215,  15,    DYNAMIC}, // Смак Меду          |  {"n":"Смак Меду","v":[128,255,1,100,1]}, A Taste of Honey
+  {  10, 128,  30, SOFT_DELAY}, // Креативний Годинник|  {"n":"Креативний Годинник","v":[128,128,1,100,1]}, Creative Watch
 
- // !!! последние эффекты имеют постоянную прописку
+  // !!! последние эффекты имеют постоянную прописку
   // никогда не перемещайте их по списку, остальные эффекты
   // можно размещать в любой последовательности.
   {  27, 186,  23,    DYNAMIC}, // Maтpицa
@@ -287,11 +291,6 @@ static const uint8_t defaultSettings[][4] PROGMEM = {
 #define WINTER_MONTH          (month_t::Oct)                // месяц, в котором происходит переход на зимнее время (возможные варианты: Jan - январь, Feb - февраль, Mar - март, Apr - апрель, May - май, Jun - июнь, Jul - июль, Aug - август, Sep - сентябрь, Oct - октябрь, Nov - ноябрь, Dec - декабрь)
 #define WINTER_TIMEZONE_NAME  ("EET")                       // обозначение зимнего времени; до 5 символов; может быть использовано, если понадобится его вывести после вывода времени; может быть "ЗИМ"
 
-// --- ВНЕШНЕЕ УПРАВЛЕНИЕ --------------
-#define USE_MQTT              (false)                       // true - используется mqtt клиент, false - нет
-#if USE_MQTT
-#define MQTT_RECONNECT_TIME   (10U)                         // время в секундах перед подключением к MQTT брокеру в случае потери подключения
-#endif
 
 // --- РАССВЕТ -------------------------
 #define DAWN_BRIGHT           (200U)                        // максимальная яркость рассвета (0-255)
@@ -327,13 +326,11 @@ uint8_t DAWN_TIMEOUT;                                       // сколько р
 #define CMD_SHOW_EFF          (15U)
 #define CMD_DEFAULT           (16U)
 #define CMD_RANDOM            (17U)
-// #define CMD_FAVORITES         (18U)
 #define CMD_GLOBAL_BRI        (19U)
 #define CMD_INTIM             (20U)
 #define CMD_OTA               (21U)
 #define CMD_IP                (22U)
 #define CMD_TEST_MATRIX       (23U)
-// #define CMD_PC_STATE          (25U)
 #define CMD_SCAN              (32U)
 #define CMD_ECHO              (33U)
 #define CMD_GROUP_INIT        (35U)
@@ -350,5 +347,6 @@ uint8_t DAWN_TIMEOUT;                                       // сколько р
 #define CMD_DIAGNOSTIC        (90U)
 #define CMD_ACTIVATE          (95U)
 #define CMD_EFF_JAVELIN       (99U)
+#define CMD_DISCOVER          (50U)
 // -------------------------------------
-String VERSION = "4.5 " + String(MODE_AMOUNT);
+String VERSION = "5.0 " + String(MODE_AMOUNT);

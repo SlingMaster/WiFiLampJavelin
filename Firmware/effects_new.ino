@@ -674,13 +674,14 @@ void Ukraine() {
 //           Масляные Краски
 //---------------------------------------
 void OilPaints() {
-
-  uint8_t divider;
+  static CRGB lastColor;
+  const byte BRI_STEP = 16U;
+  static uint8_t divider;
   uint8_t entry_point;
-  uint16_t value;
-  uint16_t max_val;
-  if (loadingFlag) {
+  uint32_t value;
+  uint32_t max_val;
 
+  if (loadingFlag) {
 #if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
     if (selectedSettings) {
       //                          scale | speed 210
@@ -689,21 +690,11 @@ void OilPaints() {
 #endif
     loadingFlag = false;
     FastLED.clear();
-    // blurScreen(beatsin8(5U, 50U, 5U));
     deltaValue = 255U - modes[currentMode].Speed + 1U;
-    step = deltaValue;                    // чтообы при старте эффекта сразу покрасить лампу
     hue = floor(21.25 * (random8(11) + 1)); // next color
-    deltaHue = hue - 22;                  // last color
-    deltaHue2 = 80;                       // min bright
+    deltaHue = hue - 16U;                   // last color
+    deltaHue2 = 70U;                        // min bright
     max_val = pow(2, WIDTH);
-    //    for ( int i = WIDTH; i < (NUM_LEDS - WIDTH); i++) {
-    //      leds[i] = CHSV(120U, 24U, 64U);
-    //    }
-  }
-
-  if (step >= deltaValue) {
-    step = 0U;
-    // LOG.printf_P(PSTR("%03d | log: %f | val: %03d\n\r"), modes[currentMode].Brightness, log(modes[currentMode].Brightness), deltaHue2);
   }
 
   // Create Oil Paints --------------
@@ -711,17 +702,16 @@ void OilPaints() {
   if (step % CENTER_Y_MINOR == 0) {
     divider = floor((modes[currentMode].Scale - 1) / 10);             // маштаб задает диапазон изменения цвета
     deltaHue = hue;                                                   // set last color
-    hue += 6 * divider;                                               // new color
-    hue2 = 255;                                                       // restore brightness
-    deltaHue2 = 80 - floor(log(modes[currentMode].Brightness) * 6);   // min bright
-    entry_point = random8(WIDTH);                                     // start X position
-    trackingObjectHue[entry_point] = hue;                             // set start position
-    drawPixelXY(entry_point,  HEIGHT - 2, CHSV(hue, 255U, 255U));
-    // !!! ********
-    if (custom_eff == 1) {
-      drawPixelXY(entry_point + 1,  HEIGHT - 3, CHSV(hue + 30, 255U, 255U));
+    if (divider > 0) {
+      hue += (6.4 * divider);                                         // new color
+    } else {
+      hue = (32 * random8(8));
     }
-    // ************
+
+    hue2 = 255;                                                       // restore brightness
+    deltaHue2 = 70 - floor(log(modes[currentMode].Brightness) * 6);   // min bright
+    entry_point = random(3, WIDTH - 3);                               // start X position
+    line[entry_point] = hue;                                          // set start position
     // LOG.printf_P(PSTR("BR %03d | SP %03d | SC %03d | hue %03d\n\r"), modes[currentMode].Brightness, modes[currentMode].Speed, modes[currentMode].Scale, hue);
   }
 
@@ -729,39 +719,42 @@ void OilPaints() {
   if (random8(3) == 1) {
     // LOG.println("<--");
     for (uint8_t x = 1U; x < WIDTH; x++) {
-      if (trackingObjectHue[x] == hue) {
-        trackingObjectHue[x - 1] = hue;
+      if (line[x] == hue) {
+        line[x - 1] = hue;
         break;
       }
     }
   } else {
     // LOG.println("-->");
     for (uint8_t x = WIDTH - 1; x > 0U ; x--) {
-      if (trackingObjectHue[x] == hue) {
-        trackingObjectHue[x + 1] = hue;
+      if (line[x] == hue) {
+        line[x + 1] = hue;
         break;
       }
-      // LOG.printf_P(PSTR("x = %02d | value = %03d | hue = %03d \n\r"), x, trackingObjectHue[x], hue);
+      // LOG.printf_P(PSTR("x = %02d | value = %03d | hue = %03d \n\r"), x, line[x], hue);
     }
   }
   // LOG.println("------------------------------------");
 
   // выводим сформированную строку --------------------- максимально яркую в момент смены цвета
   for (uint8_t x = 0U; x < WIDTH; x++) {
-    //                                                                                set color  next |    last  |
-    drawPixelXY(x,  HEIGHT - 1, CHSV(trackingObjectHue[x], 255U, (trackingObjectHue[x] == hue) ? hue2 : deltaHue2));
+    CRGB col = CHSV(line[x], 255U, (line[x] == hue) ? hue2 : ((divider > 8) ? 0 : deltaHue2));
+    if (line[x] == hue) { // (divider > 7) ? 0 :
+      wu_pixel(x * 255, (float) (HEIGHT - 1.95) * 255, &col);
+    }
+    drawPixelXY(x,  HEIGHT - 1, col);
+
   }
-  //  LOG.println("");
   // уменьшаем яркость для следующих строк
-  if ( hue2 > (deltaHue2 + 16)) {
-    hue2 -= 16U;
+  if ( hue2 > (deltaHue2 + BRI_STEP)) {
+    hue2 -= BRI_STEP;
   }
+
   // сдвигаем неравномерно поток вниз ---
-  value = random16(max_val);
+  value = random(max_val);
   //LOG.printf_P(PSTR("value = %06d | "), value);
   for (uint8_t x = 0U; x < WIDTH; x++) {
     if ( bitRead(value, x ) == 0) {
-      //LOG.print (" X");
       for (uint8_t y = 0U; y < HEIGHT - 1; y++) {
         drawPixelXY(x, y, getPixColorXY(x, y + 1U));
       }
@@ -769,7 +762,6 @@ void OilPaints() {
   }
   // LOG.printf_P(PSTR("%02d | hue2 = %03d | min = %03d \n\r"), step, hue2, deltaHue2);
   // -------------------------------------
-
   step++;
 }
 
@@ -2768,7 +2760,6 @@ void TasteHoney() {
     }
 #endif
     loadingFlag = false;
-    deltaValue = 48;
     hue = modes[currentMode].Scale * 2.55;
     index = modes[currentMode].Scale / 10;
     clearNoiseArr();
@@ -2804,20 +2795,355 @@ void TasteHoney() {
       int8_t yl = n0 - n2;
       int16_t xa = (x * 255) + ((xl * ((n0 + n1) << 1)) >> 3);
       int16_t ya = (y * 255) + ((yl * ((n0 + n2) << 1)) >> 3);
-
-      CRGB col = CHSV(hue, 255, 255);
+      CRGB col = CHSV(hue, 255U, 255U);
       wu_pixel(xa, ya, &col);
     }
   }
-  for (byte i = 0; i < WIDTH; i++) {
-    for (byte j = 0; j < HEIGHT; j++) {
-      uint8_t br = (noise2[1][i][j] < 96) ? 255 : 128; // flashes
-      nblend(leds[XY(i, j)], CHSV(hue, noise2[1][i][j], br), 128);
+}
+
+// ============= Genome UA ==============
+//           base code © Stepko
+//             © SlingMaster
+//                Геном UA
+// --------------------------------------
+#define LIGHTERS_AM ((WIDTH+HEIGHT)/6)
+static int lightersPosX[LIGHTERS_AM];
+static int lightersPosY[LIGHTERS_AM];
+static int PosRegX[LIGHTERS_AM];
+static int PosRegY[LIGHTERS_AM];
+static byte lightersSpeedX[LIGHTERS_AM];
+static byte lightersSpeedY[LIGHTERS_AM];
+static byte lightersSpeedZ[LIGHTERS_AM];
+static byte lcolor[LIGHTERS_AM];
+static byte mass[LIGHTERS_AM];
+/* --------------------------------- */
+
+
+void Spermatozoa() {
+  const byte cenzor = 3;
+  uint8_t speed = 127;
+  uint8_t scale = 16;
+
+  // msg -----
+  static int16_t offset = 0;
+  static bool print_msg;
+  const byte scroll_speed = 3072 / WIDTH / HEIGHT;
+  static const uint8_t msg[cenzor][52] = {
+    { 0xd0, 0xa1, 0xd0, 0xbb, 0xd0, 0xb0, 0xd0, 0xb2, 0xd0, 0xb0, 0x20, 0xd0, 0xa3, 0xd0,
+      0xba, 0xd1, 0x80, 0xd0, 0xb0, 0xd1, 0x97, 0xd0, 0xbd, 0xd1, 0x96, 0x20, 0xd0, 0x93,
+      0xd0, 0xb5, 0xd1, 0x80, 0xd0, 0xbe, 0xd1, 0x8f, 0xd0, 0xbc, 0x20, 0xd0, 0xa1, 0xd0,
+      0xbb, 0xd0, 0xb0, 0xd0, 0xb2, 0xd0, 0xb0, 0x21, 0x00, 0x60
+    },
+    {
+      0xd0, 0x92, 0xd1, 0x96, 0xd0, 0xb4, 0xd1, 0x87, 0xd0, 0xb5, 0xd0, 0xbf, 0xd0, 0xb8,
+      0xd1, 0x81, 0xd1, 0x8c, 0x2c, 0x20, 0xd0, 0xbd, 0xd0, 0xb0, 0xd0, 0xbc, 0x20, 0xd0,
+      0xbd, 0xd0, 0xb5, 0x20, 0xd0, 0xb4, 0xd0, 0xbe, 0x20, 0xd1, 0x82, 0xd0, 0xb5, 0xd0,
+      0xb1, 0xd0, 0xb5, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0
+    },
+    {
+      0xd0, 0x9d, 0xd0, 0xb5, 0x20, 0xd1, 0x87, 0xd1, 0x96, 0xd0, 0xbf, 0xd0, 0xb0, 0xd0,
+      0xb9, 0x20, 0xd0, 0xb2, 0xd1, 0x96, 0xd0, 0xbb, 0xd1, 0x8c, 0xd0, 0xbd, 0xd1, 0x83,
+      0x20, 0xd1, 0x81, 0xd0, 0xbf, 0xd1, 0x96, 0xd0, 0xbb, 0xd1, 0x8c, 0xd0, 0xbd, 0xd0,
+      0xbe, 0xd1, 0x82, 0xd1, 0x83, 0x00, 0x00, 0x00, 0x00, 0x60
+    }
+  };
+
+
+  if (loadingFlag) {
+#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      // scale | speed
+      setModeSettings(random8(40, 60U), random8(108U, 148U));
+    }
+#endif
+    loadingFlag = false;
+    pcnt++;
+    if (pcnt > cenzor) {
+      /* pcnt == 0 first loading ignore start print msg */
+      pcnt = 0U;
+    }
+
+    hue = 0;
+    offset = WIDTH;
+    deltaValue = 255;                             // saturate
+    FPSdelay = SOFT_DELAY;
+    scale = 16; // custom_eff ? 8 : 16;
+
+    randomSeed(millis());
+    for (byte i = 0; i < LIGHTERS_AM; i++) {
+      PosRegX[i] = random(0, WIDTH * 10);
+      PosRegY[i] = random(0, HEIGHT * 10);
+      lightersSpeedX[i] = random(25, 50);
+      lightersSpeedY[i] = random(25, 50);
+      mass[i] = random(30, 255);
+      lcolor[i] = random(0, 9) * 28;
+
+    }
+    step = 0U;
+    print_msg = true;
+  }
+
+  uint8_t color;
+  fadeToBlackBy(leds, NUM_LEDS, 45);
+  for (byte i = 0; i < map(scale, 1, 16, 2, LIGHTERS_AM); i++) {
+    lcolor[i]++;
+    if (print_msg & (pcnt > 0)) {
+      deltaValue = 255;
+      color =  (i % 2 == 0U) ? 48U : 160U;
+      deltaValue = (pcnt == 2) ? 0U : 255U;
+    } else {
+      color = lcolor[i];
+    }
+
+    lightersPosX[i] = beatsin16(lightersSpeedX[i] * speed, PosRegX[i], PosRegX[i] + mass[i] * ((HEIGHT + WIDTH) / 16));
+    lightersPosY[i] = beatsin16(lightersSpeedY[i] * speed, PosRegY[i], PosRegY[i] + mass[i] * ((HEIGHT + WIDTH) / 16));
+
+    if (lightersPosX[i] < 0) lightersPosX[i] = (WIDTH - 1) * 10 - lightersPosX[i] - (WIDTH - 1) * 10;
+    if (lightersPosX[i] > (WIDTH - 1) * 10) lightersPosX[i] = lightersPosX[i] - (WIDTH - 1) * 10;
+    if (lightersPosY[i] < 0)lightersPosY[i] = (HEIGHT - 1) * 10 - lightersPosY[i] - (HEIGHT - 1) * 10;;
+    if (lightersPosY[i] > (HEIGHT - 1) * 10) lightersPosY[i] = lightersPosY[i] - (HEIGHT - 1) * 10;
+
+    drawPixelXYF((float)lightersPosX[i] / 10, (float)lightersPosY[i] / 10, CHSV(color, deltaValue, beatsin8(lightersSpeedZ[i] / map(speed, 1, 255, 10, 1), 128, 255)));
+    drawPixelXYF((float)lightersPosX[i] / 10, (float)lightersPosY[i] / 10 - 1, CHSV(color, deltaValue, beatsin8(lightersSpeedZ[i] / map(speed, 1, 255, 10, 1), 128, 255)));
+    // black shadow if white color spermatozoon
+    drawPixelXYF((float)lightersPosX[i] / 10 - 1, (float)lightersPosY[i] / 10, CHSV(color, deltaValue, (pcnt == 2) ? 0U : beatsin8(lightersSpeedZ[i] / map(speed, 1, 255, 10, 1), 128, 255)));
+  }
+
+  // ptint random messages ---
+  uint8_t i = 0, j = 0;
+
+  if (print_msg & (pcnt > 0)) {
+    while ( msg[pcnt - 1][i] != 0)  {
+      if ((uint8_t) msg[pcnt - 1][i] > 191) {
+        i++;
+      } else {
+        uint16_t posX = offset + j * (LET_WIDTH + SPACE);
+        drawLetter(msg[pcnt - 1][i - 1], msg[pcnt - 1][i], posX, CHSV( msg[pcnt - 1][51], 255, 255), 0x000000);
+        DrawLine(posX + LET_WIDTH, TEXT_HEIGHT, posX + LET_WIDTH, TEXT_HEIGHT + LET_HEIGHT, 0x000000);
+        i++;
+        j++;
+      }
+    }
+    if (hue % scroll_speed == 0U) {
+      offset--;
+    }
+    if (offset < (int16_t)(-j * (LET_WIDTH + SPACE))) {       // end print msg
+      offset = WIDTH + 3;
+      deltaValue = 255;
+      print_msg = false;
     }
   }
-  deltaValue = abs(128U - hue2) + 32;
-  hue2++;
+  hue++;
+
+  EVERY_N_SECONDS(5) {
+    for (byte i = 0; i < map(scale, 1, 16, 2, LIGHTERS_AM); i++) {
+      lightersSpeedX[i] = random(25, 50);
+      lightersSpeedY[i] = random(25, 50);
+      mass[i] + random(-25, 25);
+      PosRegX[i] - 20;
+      if (PosRegX[i] < 0) PosRegX[i] = (WIDTH - 1) * 10;
+      PosRegY[i] + 20;
+      if (PosRegY[i] > (HEIGHT - 1) * 10) PosRegY[i] = 0;
+    }
+    step++;
+    if (step > 12U) {
+      /* timeout 60 sec for reset default msg view  */
+      step = 0U;
+      pcnt = 255U;
+    }
+  }
+}
+
+// ========== Creative  Watch ===========
+//             © SlingMaster
+//          Креативний Годинник
+// --------------------------------------
+void drawDig(uint8_t x, uint8_t y, uint8_t num, CRGB color) {
+  for (uint8_t i = 0U; i < 3U; i++) {
+    uint8_t m = pgm_read_byte(&clockFont3x5[num][i]);
+    for (uint8_t j = 0U; j < 5U; j++) {
+      if ((m >> j) & 0x01) {
+        drawPixelXY((x + i) % WIDTH, (y + j) % HEIGHT, color);
+        drawPixelXY((x + i + 1) % WIDTH, (y + j) % HEIGHT, 0x000000);
+      } else {
+        drawPixelXY((x + i) % WIDTH, (y + j) % HEIGHT, 0x000000);
+        drawPixelXY((x + i + 1) % WIDTH, (y + j) % HEIGHT, 0x000000);
+      }
+    }
+  }
+
+}
+
+// ---------------------
+void drawClockFace(uint8_t x, uint8_t y, uint8_t posR, uint8_t num,  CRGB color, bool hh) {
+  uint8_t prev = num - 1;
+  if (num == 0) {
+    prev = hh ? 23 : 59;
+  }
+  drawDig(x - 4, y, prev / 10U % 10U, color);
+  drawDig(x, y, prev % 10U, color);
+  // next --------------
+  drawDig(x - 4 + posR, y, num / 10U % 10U, color);
+  drawDig(x + posR, y, num % 10U, color);
+}
+
+// ---------------------
+void CreativeWatch() {
+  const byte PADDING = (WIDTH > 10) ? WIDTH / 8 : 0;
+  const uint8_t posR = 16; // WIDTH / 2 + 3;
+  const uint8_t t_size = WIDTH * 0.25;
+  const uint32_t dataColors[6] = {CRGB::OrangeRed, CRGB::Gold, CRGB::OliveDrab, CRGB::Goldenrod};
+  static byte index;
+  static uint8_t xx;
+  static int offset = 0;
+  static bool print_time;
+  time_t currentLocalTime;
+  uint8_t sec;
+  // ---------------------
+  //, CRGB::LightGoldenrodYellow , CRGB::Goldenrod, CRGB::SteelBlue
+
+  if (loadingFlag) {
+#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      // scale | speed
+      setModeSettings(random8(1U, 210U), 50U);
+    }
+#endif
+    loadingFlag = false;
+    if (WIDTH < 10) {
+      FPSdelay = HIGH_DELAY;
+    } else {
+      FPSdelay = SOFT_DELAY;
+    }
+
+    deltaValue = 59;
+    index = 0;
+    print_time = true;
+    index = modes[currentMode].Scale / 26;
+    FastLED.clear();
+    for (uint8_t x = 0U; x < WIDTH; x++) {
+      drawPixelXY(x, CENTER_Y_MAJOR, ((x % 2U == 0U) ? dataColors[index] : 0x000000));
+    }
+  }
+
+  // pcnt = modes[currentMode].Scale / 4;
+
+  // change color ----
+  static int64_t frameCount =  0;
+  uint8_t t1 = cos8((42 * frameCount) / 30);
+  uint8_t t2 = cos8((35 * frameCount) / 30);
+  uint8_t t3 = cos8((38 * frameCount) / 30);
+  uint8_t r = 0;
+  uint8_t g = 0;
+  uint8_t b = 0;
+
+  // ptint time ---
+  currentLocalTime = getCurrentLocalTime();
+  print_time = (deltaValue != minute(currentLocalTime));
+  if (print_time) {
+    if (deltaValue == 59) {
+      drawClockFace(CENTER_X_MAJOR - offset, CENTER_Y_MAJOR + 2, posR, hour(currentLocalTime), CRGB::SlateGrey, true);
+    }
+    drawClockFace(CENTER_X_MAJOR - offset, CENTER_Y_MAJOR - 6, posR, minute(currentLocalTime), CRGB::SlateGrey, false);
+
+    if (step % 2 == 0) {
+      offset++;
+    }
+    if (offset > posR) {       // end print time
+      print_time = false;
+      deltaValue = minute(currentLocalTime);
+      offset = 0;
+      hue = 0;
+    }
+  }
+
+  frameCount++;
+  EVERY_N_SECONDS(1) {
+    // EVERY_N_MILLISECONDS(500) {
+    // seconds gear ---
+    if (offset == 0) {
+      print_time = true;
+      offset = 0;
+    }
+
+    sec = second(currentLocalTime);
+    drawPixelXY(WIDTH - PADDING, CENTER_Y_MAJOR, (sec % 2U == 0) ? ((sec == 50) ? CRGB::Red : dataColors[index]) : 0x000000 );
+    for (uint8_t x = PADDING; x < WIDTH - PADDING; x++) {
+      drawPixelXY(x, CENTER_Y_MAJOR, getPixColorXY(x + 1, CENTER_Y_MAJOR));
+    }
+  }
+  /* // line rotate
+    if (step % 2U == 0) {
+    for (uint8_t x = 0U; x < WIDTH; x++) {
+      if (step % 4U == 0) {
+        drawPixelXY(WIDTH - 1, 0, CHSV(176, 255, 255 - hue));
+      }
+      // DrawLine(WIDTH - 1, 0, WIDTH - 1, 4, CHSV(176, 255, 255 - hue));
+      uint8_t last_color = getPixColorXY(x + 1, 0);
+      DrawLine(x, HEIGHT - 5, x, HEIGHT - 1, last_color);
+      DrawLine(x, 0, x, 4, last_color);
+    }
+    hue += 16;
+    } */
+
+  //  unsigned long milli = millis();
+  //  double t = milli / 1000.0;
+  // body if big height matrix ---------
+  if (HEIGHT > 20U) {
+    for (uint16_t y = 0; y < HEIGHT; y++) {
+      for (uint16_t x = 0; x < WIDTH; x++) {
+        // var 2 ------------------------
+        // if (((y > CENTER_Y_MAJOR + 10) & (y < HEIGHT - 3)) | ((y >= 2) & (y < 5))) {
+        //      if (((y > CENTER_Y_MAJOR + 9) & (y < HEIGHT - 3)) | ((y > 3) & (y < CENTER_Y_MAJOR - 9))) {
+        //        processFrame(t, x, y);
+        //        hue = 32U; hue2 = 190U;
+        //      }
+        // ------------------------------
+
+        r = sin8((x - 8) * cos8((y + 20) * 4) / 4);
+        g = cos8((y << 3) + t1 + cos8((t3 >> 2) + (x << 3)));
+        b = cos8((y << 3) + t2 + cos8(t1 + x + (g >> 2)));
+
+        g = exp_gamma[g];
+        b = exp_gamma[b];
+        if (modes[currentMode].Scale < 50) {
+          // green blue magenta --
+          if (b < 20) b = exp_gamma[r];
+          r = (g < 128) ? exp_gamma[b] / 3 : 0;
+        } else {
+          // green blue yellow ---
+          if (g < 20) g = exp_gamma[r];
+          r = (b < 128) ? exp_gamma[g] / 2 : 0;
+        }
+        // ---------------------
+
+        // if (( (y > HEIGHT - 6) | (y < 6) | (x < 3) | (x > WIDTH - 4) ) & ((x % 2) | (y < 5) | (y > HEIGHT - 5)) ) { & ((y < CENTER_Y_MAJOR - 12) | (y > CENTER_Y_MAJOR + 11) )
+        if ((( (y < CENTER_Y_MAJOR - 11) | y > CENTER_Y_MAJOR + 10) | (x < PADDING) | (x > WIDTH - PADDING - 1) )) {
+          leds[XY(x, y)] = CRGB(r, g, b);
+        }
+      }
+    }
+  }
+
+  // pendulum --------
+  for (uint8_t x = 0U; x < WIDTH; x++) {
+    if (HEIGHT > 18U) {
+      drawPixelXY( abs(WIDTH / 2 - xx) + x - t_size, CENTER_Y_MAJOR + 9, (((x > t_size) & (x < (WIDTH - t_size))) ? dataColors[index] : 0x000000));
+      drawPixelXY( abs(WIDTH / 2 - xx) + x - t_size, CENTER_Y_MAJOR + 8, (((x > t_size) & (x < (WIDTH - t_size))) ? dataColors[index] : 0x000000));
+      drawPixelXY( abs(WIDTH / 2 - xx) + x - t_size, CENTER_Y_MAJOR - 9, (((x > t_size) & (x < (WIDTH - t_size))) ? dataColors[index] : 0x000000));
+    }
+    drawPixelXY( abs(WIDTH / 2 - xx) + x - t_size, CENTER_Y_MAJOR - 8, (((x > t_size) & (x < (WIDTH - t_size))) ? dataColors[index] : 0x000000));
+  }
+  xx++;
+  if (xx > WIDTH) {
+    xx = 0;
+  }
+  // -----------------
+  step++;
 }
 
 
+// ==============
 // END ==============
+// ==============
+

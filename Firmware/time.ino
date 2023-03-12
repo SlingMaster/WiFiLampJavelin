@@ -78,7 +78,7 @@ void timeTick() {
       thisTime = hour(currentLocalTime) * 60 + minute(currentLocalTime);
       uint32_t thisFullTime = hour(currentLocalTime) * 3600 + minute(currentLocalTime) * 60 + second(currentLocalTime);
 
-      printTime(thisTime, false, ONflag);                                 // проверка текущего времени и его вывод (если заказан и если текущее время соответстует заказанному расписанию вывода)
+      // printTime(thisTime, false, ONflag);                                 // проверка текущего времени и его вывод (если заказан и если текущее время соответстует заказанному расписанию вывода)
 
       // проверка рассвета
       // LOG.println("DAY[" + String(thisDay) + "] [ " + (alarms[thisDay].State == 1 ? "•" : " ") + " ] Time: " + String(thisTime) + " | Alarms Start: " + String(alarms[thisDay].Time) + " | End: " + String(alarms[thisDay].Time + DAWN_TIMEOUT) );
@@ -161,16 +161,15 @@ void resolveNtpServerAddress(bool &ntpServerAddressResolved) {             // ф
 #ifdef GENERAL_DEBUG
     LOG.print(F("IP адрес NTP: "));
     LOG.println(ntpServerIp);
-#endif
     LOG.println(F("Подключение к интернету отсутствует"));
+#endif
     ntpServerAddressResolved = false;
   } else {
 #ifdef GENERAL_DEBUG
     LOG.print(F("IP адрес NTP: "));
     LOG.println(ntpServerIp);
+    LOG.println(F("Подключение к NTP установлено"));
 #endif
-
-    LOG.println(F("Подключение к интернету установлено"));
     ntpServerAddressResolved = true;
   }
 }
@@ -243,6 +242,12 @@ String Get_Time(time_t LocalTime) {
   int i = Time.indexOf(":"); //Ишем позицию первого символа :
   Time = Time.substring(i - 2, i + 6); // Выделяем из строки 2 символа перед символом : и 6 символов после
   return Time; // Возврашаем полученное время
+}
+
+//---------------------------------------
+void localTime(char *stringTime) {
+ // буффер для выводимого текста, его длина должна быть НЕ МЕНЬШЕ, чем длина текста + 1
+ sprintf_P(stringTime, PSTR("%02u:%02u"), (uint8_t)((thisTime - thisTime % 60U) / 60U), (uint8_t)(thisTime % 60U));
 }
 
 // --------------------------------------

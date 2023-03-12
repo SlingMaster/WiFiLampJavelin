@@ -3338,7 +3338,8 @@ const uint8_t PROGMEM anim[] = {
   0X01, 0X9D, 0XE7, 0X17, 0X00,
   0X00, 0X4C, 0XBF, 0X03, 0X00,
   0X00, 0X13, 0X4F, 0X00, 0X00,
-  0XFF, 0XFF, 0XFF, };
+  0XFF, 0XFF, 0XFF,
+};
 // 17505 bytes
 
 // =========== FeatherCandle ============

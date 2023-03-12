@@ -9,7 +9,22 @@
   ==========================================================================================
   Исходники последней версии: https://github.com/SlingMaster/WiFiLamp-Javelin
   ==========================================================================================
-  Обсуждение прошивки :
+  Розпакуйте вміст архіву в кореневу папку на диску (не на робочий стіл, будь ласка)
+  і робіть так само, як показав Алекс Гайвер у своєму відео https://youtu.be/771-Okf0dYs?t=525. 
+  Відмінність від відео – матрицю підключаємо до D3 і кнопку живимо від 3,3 вольта.
+  В архіві є файл "Прочитай мене!!.doc. Його потрібно уважно прочитати. 
+  Для завантаження файлів з папки data у файлову систему контролера потрібно встановити Uploader. 
+  Відео https://esp8266-arduinoide.ru/esp8266fs/
+  Версію плати у "Менеджері плат" вибирайте 2.7.4. При першому запуску лампа створить свою WiFi мережу з ім'ям «WiFi Lamp Javelin» пароль у мережі при першому запуску буде 31415926. 
+  Після підключення до мережі «WiFi Lamp Javelin» наберіть у браузері 192.168.4.1 і зайдіть на web сторінку лампи. Там можна змінити ім'я лампи (якщо їх кілька у мережі), 
+  налаштувати підключення до Вашої домашньої WiFi мережі. Перезавантажити лампу.
+  Всі налаштування прошивки знаходяться на вкладці ConstantsUser.h (там без проблем розберетеся) і у файлі data/config.json (там можна нічого не змінювати, все змінюється потім 
+  з web-сторінки лампи). Але якщо хочете, щоб лампа відразу підключилася до Вашої WiFi мережі, введіть у файлі data/cofig.json у поля "ssid": та "password": 
+  ім'я та пароль Вашої WiFi мережі відповідно. Поле "ESP_mode": змініть з 0 на 1. Збережіть файл на те саме місце та зробіть upload файлової системи. Лампа одразу підключиться до Вашої мережі. 
+  Інші налаштування можна зробити зі сторінки лампи.
+
+  На YouTube каналі «SlingMasterJSC» https://www.youtube.com/user/SlingMasterJSC 
+  є підбірка відео, про конструкцію лампи та програмне забезпечення два плейлісти Wifi Lamp «Javelin» та Arduino Project які я рекомендую переглянути
   ========================================================================================== */
 
 // ======================= ВНИМАНИЕ !!! =============================
@@ -66,10 +81,6 @@
 
 #if USE_MQTT
 #include "MqttManager.h"
-#endif
-
-#ifdef USE_BLYNK
-#include <BlynkSimpleEsp8266.h>
 #endif
 
 #ifdef USE_LittleFS
@@ -209,7 +220,6 @@ uint8_t properties_level = 0;
 #endif
 
 char TextTicker [80];
-int Painting = 0; CRGB DriwingColor = CRGB(255, 255, 255);
 
 uint8_t espMode ;
 uint8_t random_on;
@@ -404,11 +414,7 @@ void setup() {
   FastLED.clear();
   FastLED.show();
 
-#ifdef USE_SHUFFLE_FAVORITES                                 // первоначальная очередь избранного до перемешивания
-  for (uint8_t i = 0; i < MODE_AMOUNT; i++) {
-    shuffleFavoriteModes[i] = i;
-  }
-#endif
+
 
   // EEPROM
   EepromManager::InitEepromSettings(                        // инициализация EEPROM; запись начального состояния настроек, если их там ещё нет; инициализация настроек лампы значениями из EEPROM
@@ -416,7 +422,6 @@ void setup() {
     &(FavoritesManager::ReadFavoritesFromEeprom),
     &(FavoritesManager::SaveFavoritesToEeprom),
     &(restoreSettings)); // не придумал ничего лучше, чем делать восстановление настроек по умолчанию в обработчике инициализации EepromManager
-
   sendAlarms(inputBuffer);  // Чтение настроек будильника при старте лампы
 
   // DAWN_TIMEOUT читаем из файла настроек будильника значение не хранится в EPROM
@@ -483,9 +488,7 @@ void setup() {
     }
 
     delay (100);
-#ifdef USE_BLYNK
-    Blynk.config(USE_BLYNK);
-#endif
+
   }     //if (espMode == 0U) {...} else {...
 
   ESP.wdtFeed();
@@ -589,78 +592,69 @@ void loop() {
     }
 
     parseUDP();
-    if (Painting == 0) {
-      effectsTick();
-      EepromManager::HandleEepromTick(&settChanged, &eepromTimeout, &ONflag,
-                                      &currentMode, modes, &(FavoritesManager::SaveFavoritesToEeprom));
-      // yield();
+
+    effectsTick();
+    EepromManager::HandleEepromTick(&settChanged, &eepromTimeout, &ONflag,
+                                    &currentMode, modes, &(FavoritesManager::SaveFavoritesToEeprom));
+    // yield();
 #if defined(USE_NTP) || defined(USE_MANUAL_TIME_SETTING) || defined(GET_TIME_FROM_PHONE)
-      //if (millis() > 30 * 1000U) можно попытаться оттянуть срок первой попытки синхронизации времени на 30 секунд, чтобы роутер успел не только загрузиться, но и соединиться с интернетом
-      timeTick();
+    //if (millis() > 30 * 1000U) можно попытаться оттянуть срок первой попытки синхронизации времени на 30 секунд, чтобы роутер успел не только загрузиться, но и соединиться с интернетом
+    timeTick();
 #endif
 
 #ifdef ESP_USE_BUTTON
-      buttonTick();
+    buttonTick();
 #endif
 
 #ifdef JAVELIN
-      buttonJavelinTick();
+    buttonJavelinTick();
 #endif
-      if ((millis() - auto_swap_timer) >= eff_interval * 1000UL) { // отображение эффектов в циклле
-        auto_swap_timer = millis();
-        autoSwapEff();
-      }
+    if ((millis() - auto_swap_timer) >= eff_interval * 1000UL) { // отображение эффектов в циклле
+      auto_swap_timer = millis();
+      autoSwapEff();
+    }
 
 #ifdef OTA
-      otaManager.HandleOtaUpdate();                             // ожидание и обработка команды на обновление прошивки по воздуху
+    otaManager.HandleOtaUpdate();                             // ожидание и обработка команды на обновление прошивки по воздуху
 #endif
 
-      TimerManager::HandleTimer(&ONflag, &settChanged,          // обработка событий таймера отключения лампы
-                                &eepromTimeout, &changePower);
+    TimerManager::HandleTimer(&ONflag, &settChanged,          // обработка событий таймера отключения лампы
+                              &eepromTimeout, &changePower);
 
-      if (FavoritesManager::HandleFavorites(                    // обработка режима избранных эффектов
-            &ONflag,
-            &currentMode,
-            &loadingFlag
+    if (FavoritesManager::HandleFavorites(                    // обработка режима избранных эффектов
+          &ONflag,
+          &currentMode,
+          &loadingFlag
 #if defined(USE_NTP) || defined(USE_MANUAL_TIME_SETTING) || defined(GET_TIME_FROM_PHONE)
-            , &dawnFlag
+          , &dawnFlag
 #endif
 #ifdef RANDOM_SETTINGS_IN_CYCLE_MODE
-            , &random_on
-            , &selectedSettings
-            , setFPS
+          , &random_on
+          , &selectedSettings
+          , setFPS
 #endif
-          )) {
-#ifdef USE_BLYNK
-        updateRemoteBlynkParams();
-#endif
-        FastLED.setBrightness(modes[currentMode].Brightness);
-      }
+        )) {
+      FastLED.setBrightness(modes[currentMode].Brightness);
+    }
 
 #if USE_MQTT
-      if (espMode == 1U && mqttClient && WiFi.isConnected() && !mqttClient->connected()) {
-        MqttManager::mqttConnect();                             // библиотека не умеет восстанавливать соединение в случае потери подключения к MQTT брокеру, нужно управлять этим явно
-        MqttManager::needToPublish = true;
-      }
+    if (espMode == 1U && mqttClient && WiFi.isConnected() && !mqttClient->connected()) {
+      MqttManager::mqttConnect();                             // библиотека не умеет восстанавливать соединение в случае потери подключения к MQTT брокеру, нужно управлять этим явно
+      MqttManager::needToPublish = true;
+    }
 
-      if (MqttManager::needToPublish) {
-        if (strlen(inputBuffer) > 0) {                          // проверка входящего MQTT сообщения; если оно не пустое - выполнение команды из него и формирование MQTT ответа
-          processInputBuffer(inputBuffer, MqttManager::mqttBuffer, true);
-        }
-        MqttManager::publishState();
+    if (MqttManager::needToPublish) {
+      if (strlen(inputBuffer) > 0) {                          // проверка входящего MQTT сообщения; если оно не пустое - выполнение команды из него и формирование MQTT ответа
+        commandDecode (inputBuffer, MqttManager::mqttBuffer, true);
       }
-#endif
-
-#ifdef USE_BLYNK
-      if (espMode == 1U && WiFi.isConnected()) {
-        Blynk.run();
-      }
+      MqttManager::publishState();
+    }
 #endif
 
 #if defined(GENERAL_DEBUG) && GENERAL_DEBUG_TELNET
-      handleTelnetClient();
+    handleTelnetClient();
 #endif
-    }
+
     ESP.wdtFeed();
   } while (connect);
 }

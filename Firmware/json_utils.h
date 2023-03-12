@@ -72,24 +72,3 @@ String readFile(String fileName, size_t len ) {
   configFile.close();
   return temp;
 }
-
-// --------------------------------------
-String convertList(String srcList ) {
-  const char enter = 13;
-  String stringTwo = srcList;
-  stringTwo.replace("{\"n\":\"", "");
-  String stringTemp = stringTwo;
-  stringTemp.replace("\",\"v\":[", ",");
-  stringTwo = stringTemp;
-  stringTwo.replace("]},", ";");
-  stringTemp = stringTwo;
-  stringTemp.replace("]}", ";");
-  stringTwo = stringTemp;
-  stringTwo.replace("[", "");
-  stringTemp = stringTwo;
-  stringTemp.replace("]", "");
-  stringTwo = stringTemp;
-  stringTwo.replace("\n\r", "|");
-  return "List not found";
-  // return stringTemp;
-}

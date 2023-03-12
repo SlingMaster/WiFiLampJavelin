@@ -16,8 +16,6 @@ void showWarning(
   FastLED.setBrightness(WARNING_BRIGHTNESS);                // установка яркости для предупреждения
   FastLED.clear();
   FastLED.delay(2);
-  //  delay(2);
-  //  FastLED.show();
   fillAll(color);
   uint32_t startTime = millis();
   while (millis() - startTime <= (duration + 5)) {          // блокировка дальнейшего выполнения циклом на время отображения предупреждения
@@ -25,8 +23,6 @@ void showWarning(
       blinkTimer = millis();
       blinkState = (BlinkState)!blinkState;
       FastLED.setBrightness(blinkState == BlinkState::OFF ? 0 : WARNING_BRIGHTNESS);
-      //      delay(1);
-      //      FastLED.show();
       FastLED.delay(1);
     }
     delay(50);
@@ -34,8 +30,6 @@ void showWarning(
 
   FastLED.clear();
   FastLED.setBrightness(ONflag ? modes[currentMode].Brightness : 0);  // установка яркости, которая была выставлена до вызова предупреждения
-  //  delay(1);
-  //  FastLED.show();
   FastLED.delay(1);
 
 #if defined(MOSFET_PIN) && defined(MOSFET_LEVEL)      // установка сигнала в пин, управляющий MOSFET транзистором, соответственно состоянию вкл/выкл матрицы или будильника
@@ -59,9 +53,7 @@ void runEffect() {
 #if (USE_MQTT)
   if (espMode == 1U) MqttManager::needToPublish = true;
 #endif
-#ifdef USE_BLYNK
-  updateRemoteBlynkParams();
-#endif
+
 
 #ifdef USE_MULTIPLE_LAMPS_CONTROL
   multipleLampControl();
@@ -212,9 +204,6 @@ void smartLampOff(uint8_t timeout ) {
   settChanged = true;
   eepromTimeout = millis();
 
-#ifdef USE_BLYNK
-  updateRemoteBlynkParams();
-#endif
 
   TimerManager::TimeToFire = millis() + timeout * 60UL * 1000UL;
   TimerManager::TimerRunning = true;
@@ -255,9 +244,7 @@ void buttonTick() {
       MqttManager::needToPublish = true;
     }
 #endif
-#ifdef USE_BLYNK
-    updateRemoteBlynkParams();
-#endif
+
 #ifdef USE_MULTIPLE_LAMPS_CONTROL
     multipleLampControl();
 #endif  //USE_MULTIPLE_LAMPS_CONTROL
@@ -332,7 +319,6 @@ void buttonTick() {
   if (touch.isStep()) {
     if (ONflag && !Button_Holding) {
       int8_t but = touch.getHoldClicks();
-      Serial.println (but);
 
       switch (but ) {
         case 0U: {                                               // просто удержание (до удержания кнопки кликов не было) - изменение яркости
@@ -340,7 +326,6 @@ void buttonTick() {
 #ifdef PROPERTIES_LEVEL_INDICATOR
             properties_level = 1;
 #endif
-
             break;
           }
 
@@ -391,9 +376,6 @@ void buttonTick() {
         changePower();
         settChanged = true;
         eepromTimeout = millis();
-#ifdef USE_BLYNK
-        updateRemoteBlynkParams();
-#endif
       }
     }
   }
@@ -406,10 +388,6 @@ void buttonTick() {
 
 #if (USE_MQTT)
     if (espMode == 1U) MqttManager::needToPublish = true;
-#endif
-
-#ifdef USE_BLYNK
-    updateRemoteBlynkParams();
 #endif
   }
 }

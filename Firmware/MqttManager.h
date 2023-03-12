@@ -1,55 +1,11 @@
-#ifdef USE_MQTT
+#if USE_MQTT
 /*
    Библиотека асинхронных MQTT запросов https://github.com/marvinroger/async-mqtt-client
    Не умеет автоматически восстанавливать разорванное соединение с MQTT брокером, поэтому требует периодической проверки подключения
    Зависит от библиотек:
      ESPAsyncTCP https://github.com/me-no-dev/ESPAsyncTCP
      AsyncTCP https://github.com/me-no-dev/AsyncTCP
-   Лампа подписана на топик: LedLamp/LedLamp_xxxxxxxx/cmnd, где xxxxxxxx - ESP.getChipID(); payload - строка, содержащая те же команды, что отправляются приложением (регистр важен):
-     P_ON - включить матрицу
-     P_OFF - выключить матрицу
-     EFF0 - сделать активным эффект №0 (нумерация с нуля)
-     BRI44 - установить яркость 44; диапазон [1..255]
-     SPD3 - установить скорость 3; диапазон [1..255]
-     SCA1 - установить масштаб 1; диапазон [1..100]
-     ALM_SET1 ON - завести будильник 1 (понедельник); ON - вкл, OFF - выкл
-     ALM_SET1 390 - установить время будильника 1 (понедельник) на 06:30 (количество минут от начала суток)
-     DAWN1 - установить "рассвет" за 5 минут до будильника (1 = 5 минут - номер опции в выпадающем списке в приложении, нумерация с единицы)
-     TMR_SET 1 3 300 - установить таймер; описание параметров - см. команду TMR ниже
-     FAV_SET 1 60 120 0 0 1 0 0 0 0 0 1 1 0 0 1 0 0 0 0 0 0 1 0 0 0 1 0 0 0 - установить режим "избранное", параметры - см. команду FAV ниже
-     BTN ON - разблокировать кнопку на лампе
-     BTN OFF - заблокировать кнопку на лампе
-   Лампа отправляет своё состояние сразу после включения и после каждого изменения в топик LedLamp/LedLamp_<ChipId>/state; payload:
-    "CURR 7 14 4 50 1 1 1 0 1 21:25:50", где:
-       CURR - идентификатор команды, CURR - текущее состояние лампы
-       7 - номер текущего эффекта
-       14 - яркость
-       4 - скорость
-       50 - масштаб
-       1 - признак "матрица включена"
-       1 - режим ESP_MODE
-       1 - признак USE_NTP (пытаться синхронизировать время по серверам времени в интернете)
-       0 - признак "работает таймер"
-       1 - признак "кнопка разблокирована"
-       21:25:50 - текущее время (если не синхронизировано, показывает время от старта модуля)
-    "ALMS 1 0 0 0 0 0 0 0 390 0 0 0 0 0 0 1"
-       ALMS - идентификатор команды, ALMS - настройки будильников
-       первые 7 цифр - признак "будильник заведён" по дням недели, начиная с понедельника
-       последующие 7 цифр - время в минутах от начала суток, на которое заведён будильник (по дням недели); 390 = 06:30
-       последняя цифра - опция "рассвет за ... минут", цифра указывает на номер значения в выпадающем списке: 1 - 5 минут, 2 - 10 минут... (см. в приложении)
-    "TMR 1 3 300"
-       TMR - идентификатор команды, TMR - таймер
-       1 - признак "таймер взведён"
-       3 - опция "выключить лампу через ...", цифра указывает на номер значения в выпадающем списке: 1 - не выключать, 2 - 1 минута... (см. в приложении)
-       300 - количество секунд, через которое выключится лампа (0 - не выключать)
-    "FAV 1 60 120 0 0 1 0 0 0 0 0 1 1 0 0 1 0 0 0 0 0 0 1 0 0 0 1 0 0 0............МНОГО НОЛИКОВ И ЕДИНИЧЕК... 1 0"
-       FAV - идентификатор команды, FAV - избранное
-       1 - режим "избранное" включен
-       60 - интервал смены эффектов в секундах
-       120 - случайный разброс смены эффектов (применяется дополнительно к интервалу) в секундах
-       0 - признак "запомнить состояние" вкл/выкл режима "избранное" в энергонезависимую память
-       оставшиеся цифры - признак (0/1) "эффект №... добавлен в избранные", где номер цифры соотвтетсвует номеру эффекта в списке (см. приложение)
-       КОЛИЧЕСТВО ЦИФЕРОК ДОЛЖНО СООТВЕТСТВОВАТЬ КОЛИЧЕСТВУ ЭФФЕКТОВ!!!!!!
+   Лампа подписана на топик: LedLamp/LedLamp/xxxxxxxx/cmnd, где xxxxxxxx - ESP.getChipID(); payload - строка, содержащая те же команды, что отправляются приложением (регистр важен): 
 */
 
 #include <AsyncMqttClient.h>
@@ -57,15 +13,10 @@
 #include "Constants.h"
 #include "Types.h"
 
-static const char TopicBase[]          PROGMEM = "LedLamp";                     // базовая часть топиков
-static const char TopicCmnd[]          PROGMEM = "cmnd";                        // часть командных топиков (входящие команды лампе)
-static const char TopicState[]         PROGMEM = "state";                       // часть топиков состояния (ответ от лампы)
+static const char TopicBase[]          PROGMEM = "IoT";                         // базова частина топіків
+static const char TopicCmd[]           PROGMEM = "cmd";                         // частина командних топіків (іnput command)
+static const char TopicState[]         PROGMEM = "state";                       // частина топіків стану (відповідь від пристрою)
 
-static const char MqttServer[]         PROGMEM = "192.168.0.100";               // строка с IP адресом MQTT брокера
-static const uint16_t MqttPort                 = 1883U;                         // порт MQTT брокера
-static const char MqttUser[]           PROGMEM = "";                            // пользователь MQTT брокера
-static const char MqttPassword[]       PROGMEM = "";                            // пароль пользователя MQTT брокера
-static const char MqttClientIdPrefix[] PROGMEM = "LedLamp_";                    // id клиента MQTT брокера (к нему будет добавлен ESP.getChipId)
 
 // -------------------------------------
 class MqttManager {
@@ -84,7 +35,8 @@ class MqttManager {
     static char* mqttServer;
     static char* mqttUser;
     static char* mqttPassword;
-    static char* topicInput;                                                    // TopicBase + '/' + MqttClientIdPrefix + ESP.getChipId + '/' + TopicCmnd
+
+    static char* topicInput;                                                    // TopicBase + '/' + MqttClientIdPrefix + ESP.getChipId + '/' + TopicCmd
     static char* topicOutput;                                                   // TopicBase + '/' + MqttClientIdPrefix + ESP.getChipId + '/' + TopicState
     static char* clientId;
     static char* lampInputBuffer;                                               // ссылка на inputBuffer для записи в него пришедшей MQTT команды и последующей её обработки лампой
@@ -120,14 +72,15 @@ void MqttManager::setupMqtt(AsyncMqttClient* mqttClient, char* lampInputBuffer, 
   if (MqttManager::mqttUser != NULL) {
     MqttManager::mqttClient->setCredentials(MqttManager::mqttUser, MqttManager::mqttPassword);
   }
-
-  uint8_t topicLength = sizeof(TopicBase) + 1 + strlen(clientId) + 1 + sizeof(TopicCmnd) + 1;
+  // ----------
+  uint8_t topicLength = sizeof(TopicBase) + 1 + strlen(clientId) + 1 + sizeof(TopicCmd) + 1;
   topicInput = (char*)malloc(topicLength);
-  sprintf_P(topicInput, PSTR("%s/%s/%s"), TopicBase, clientId, TopicCmnd);      // topicInput = TopicBase + '/' + MqttClientIdPrefix + ESP.getChipId + '/' + TopicCmnd
-
+  sprintf_P(topicInput, PSTR("%s/%s/%s"), TopicBase, clientId, TopicCmd);      // topicInput = TopicBase + '/' + MqttClientIdPrefix + ESP.getChipId + '/' + TopicCmd
+  // ----------
   topicLength = sizeof(TopicBase) + 1 + strlen(clientId) + 1 + sizeof(TopicState) + 1;
   topicOutput = (char*)malloc(topicLength);
-  sprintf_P(topicOutput, PSTR("%s/%s/%s"), TopicBase, clientId, TopicState);    // topicOutput = TopicBase + '/' + MqttClientIdPrefix + ESP.getChipId + '/' + TopicState
+  sprintf_P(topicOutput, PSTR("%s/%s/%s"), TopicBase, clientId, TopicState);   // topicOutput = TopicBase + '/' + MqttClientIdPrefix + ESP.getChipId + '/' + TopicState
+  // ----------
 
 #ifdef GENERAL_DEBUG
   LOG.printf_P(PSTR("MQTT топик для входящих команд: %s\n"), topicInput);
@@ -178,6 +131,7 @@ void MqttManager::onMqttConnect(bool sessionPresent) {
 #endif
   mqttLastConnectingAttempt = 0;
   mqttClient->subscribe(topicInput, 1);
+  mqttClient->subscribe("IoT/discover", 1);
   publishState();
 }
 

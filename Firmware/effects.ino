@@ -803,11 +803,6 @@ void colorsRoutine2()
     }
     else if (step >= deltaValue) {
       deltaHue = modes[currentMode].Scale;
-#ifdef USE_BLYNK
-      if (modes[currentMode].Scale > 100U) modes[currentMode].Scale = 100U;
-      deltaHue = modes[currentMode].Scale * 2.55;
-#endif
-
       step = 0U;
     }
     else
@@ -3585,44 +3580,6 @@ uint8_t myScale8(uint8_t x) { // даёт масштабировать кажд�
   return (253U - x4 * 72U); // 253U = 255U - 2U
 }
 
-#ifdef USE_BLYNK
-void coloredRain() { // внимание! этот эффект заточен на работу бегунка Масштаб в диапазоне от 0 до 255. пока что единственный, поэтому для Блинка всё пересчитываем.
-
-#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
-  if (selectedSettings) {
-    setModeSettings(1U + random8(100U) , 165U + random8(76U));
-  }
-#endif //#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
-  if (modes[currentMode].Scale > 100U) modes[currentMode].Scale = 100U;
-  if (modes[currentMode].Scale * 2.55 > 247U)
-    rain(60, 200, map8(42, 5, 100), myScale8(modes[currentMode].Scale * 2.55), solidRainColor, false, false, false);
-  else
-    rain(60, 200, map8(42, 5, 100), myScale8(modes[currentMode].Scale * 2.55), CHSV(modes[currentMode].Scale * 2.55, 255U, 255U), false, false, false);
-}
-
-void simpleRain() {
-#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
-  if (selectedSettings) {
-    setModeSettings(random8(2U) ? 2U + random8(7U) : 8U + random8(70U), 220U + random8(22U));
-  }
-#endif //#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
-
-  if (modes[currentMode].Scale > 100U) modes[currentMode].Scale = 100U;
-  rain(60, 180, (modes[currentMode].Scale * 2.55 - 1) * 2.58, 30, solidRainColor, true, true, false);
-}
-
-void stormyRain() {
-#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
-  if (selectedSettings) {
-    setModeSettings(random8(2U) ? 2U + random8(15U) : 17U + random8(64U), 220U + random8(22U));
-  }
-#endif //#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
-
-  if (modes[currentMode].Scale > 100U) modes[currentMode].Scale = 100U;
-  rain(60, 160, (modes[currentMode].Scale * 2.55 - 1) * 2.58, 30, solidRainColor, true, true, true);
-}
-#else
-
 // =====================================
 //                Ocaдки
 // =====================================
@@ -3673,7 +3630,6 @@ void stormyRain() {
   //rain(0, 90, map8(intensity,0,150)+60, 10, solidRainColor, true, true, true);
   rain(60, 160, (modes[currentMode].Scale - 1) * 2.58, 30, solidRainColor, true, true, true);
 }
-#endif // ifdef USE_BLYNK
 
 
 // =====================================
@@ -3899,441 +3855,8 @@ void ringsRoutine() {
   }
 }
 
-// =====================================
-//            Kyбик Pyбикa
-// =====================================
-//             © SottNick
-#define PAUSE_MAX 7 // пропустить 7 кадров после завершения анимации сдвига ячеек
-uint8_t razmerX, razmerY; // размеры ячеек по горизонтали / вертикали
-uint8_t shtukX, shtukY; // количество ячеек по горизонтали / вертикали
-uint8_t poleX, poleY; // размер всего поля по горизонтали / вертикали (в том числе 1 дополнительная пустая дорожка-разделитель с какой-то из сторон)
-int8_t globalShiftX, globalShiftY; // нужно ли сдвинуть всё поле по окончаии цикла и в каком из направлений (-1, 0, +1)
-bool seamlessX; // получилось ли сделать поле по Х бесшовным
-bool krutimVertikalno; // направление вращения в данный момент
 
-void cube2dRoutine() {
-  uint8_t x, y;
-  uint8_t anim0; // будем считать тут начальный пиксель для анимации сдвига строки/колонки
-  int8_t shift, kudaVse; // какое-то расчётное направление сдвига (-1, 0, +1)
-  CRGB color, color2;
 
-  if (loadingFlag) {
-#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
-    if (selectedSettings) {
-      uint8_t tmp = random8(9U) * 11U + random8(8U); // масштаб 1-7, палитры все 9
-      if (tmp == 45U) tmp = 100U; //+ белый цвет
-      setModeSettings(tmp, 175U + random8(66U));
-    }
-#endif //#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
-
-    loadingFlag = false;
-    setCurrentPalette();
-    FastLED.clear();
-
-    razmerX = (modes[currentMode].Scale - 1U) % 11U + 1U; // размер ячейки от 1 до 11 пикселей для каждой из 9 палитр
-    razmerY = razmerX;
-    if (modes[currentMode].Speed & 0x01) // по идее, ячейки не обязательно должны быть квадратными, поэтому можно тут поизвращаться
-      razmerY = (razmerY << 1U) + 1U;
-
-    shtukY = HEIGHT / (razmerY + 1U);
-    if (shtukY < 2U)
-      shtukY = 2U;
-    y = HEIGHT / shtukY - 1U;
-    if (razmerY > y)
-      razmerY = y;
-    poleY = (razmerY + 1U) * shtukY;
-    shtukX = WIDTH / (razmerX + 1U);
-    if (shtukX < 2U)
-      shtukX = 2U;
-    x = WIDTH / shtukX - 1U;
-    if (razmerX > x)
-      razmerX = x;
-    poleX = (razmerX + 1U) * shtukX;
-    seamlessX = (poleX == WIDTH);
-    deltaHue = 0U;
-    deltaHue2 = 0U;
-    globalShiftX = 0;
-    globalShiftY = 0;
-
-    for (uint8_t j = 0U; j < shtukY; j++) {
-      y = j * (razmerY + 1U); // + deltaHue2 т.к. оно =0U
-      for (uint8_t i = 0U; i < shtukX; i++) {
-        x = i * (razmerX + 1U); // + deltaHue т.к. оно =0U
-        if (modes[currentMode].Scale == 100U) {
-          color = CHSV(45U, 0U, 128U + random8(128U));
-        } else {
-          color = ColorFromPalette(*curPalette, random8());
-        }
-        for (uint8_t k = 0U; k < razmerY; k++) {
-          for (uint8_t m = 0U; m < razmerX; m++) {
-            leds[XY(x + m, y + k)] = color;
-          }
-        }
-      }
-    }
-    step = 4U; // текущий шаг сдвига первоначально с перебором (от 0 до deltaValue-1)
-    deltaValue = 4U; // всего шагов сдвига (от razmer? до (razmer?+1) * shtuk?)
-    hue2 = 0U; // осталось шагов паузы
-  }
-
-  //двигаем, что получилось...
-  if (hue2 == 0 && step < deltaValue) { // если пауза закончилась, а цикл вращения ещё не завершён
-    step++;
-    if (krutimVertikalno) {
-      for (uint8_t i = 0U; i < shtukX; i++) {
-        x = (deltaHue + i * (razmerX + 1U)) % WIDTH;
-        if (noise3d[0][i][0] > 0) { // в нулевой ячейке храним оставшееся количество ходов прокрутки
-          noise3d[0][i][0]--;
-          shift = noise3d[0][i][1] - 1; // в первой ячейке храним направление прокрутки
-
-          if (globalShiftY == 0)
-            anim0 = (deltaHue2 == 0U) ? 0U : deltaHue2 - 1U;
-          else if (globalShiftY > 0)
-            anim0 = deltaHue2;
-          else
-            anim0 = deltaHue2 - 1U;
-
-          if (shift < 0) { // если крутим столбец вниз
-            color = leds[XY(x, anim0)];                                   // берём цвет от нижней строчки
-            for (uint8_t k = anim0; k < anim0 + poleY - 1; k++) {
-              color2 = leds[XY(x, k + 1)];                                // берём цвет от строчки над нашей
-              for (uint8_t m = x; m < x + razmerX; m++) {
-                leds[XY(m % WIDTH, k)] = color2;                          // копируем его на всю нашу строку
-              }
-            }
-            for (uint8_t m = x; m < x + razmerX; m++) {
-              leds[XY(m % WIDTH, anim0 + poleY - 1)] = color;             // цвет нижней строчки копируем на всю верхнюю
-            }
-          }
-          else if (shift > 0) // если крутим столбец вверх
-          {
-            color = leds[XY(x, anim0 + poleY - 1)];                       // берём цвет от верхней строчки
-            for (uint8_t k = anim0 + poleY - 1; k > anim0 ; k--) {
-              color2 = leds[XY(x, k - 1)];                                // берём цвет от строчки под нашей
-              for (uint8_t m = x; m < x + razmerX; m++) {
-                leds[XY(m % WIDTH, k)] = color2;                          // копируем его на всю нашу строку
-              }
-            }
-            for (uint8_t m = x; m < x + razmerX; m++) {
-              leds[XY(m % WIDTH, anim0)] = color;                         // цвет верхней строчки копируем на всю нижнюю
-            }
-          }
-        }
-      }
-    } else {
-      for (uint8_t j = 0U; j < shtukY; j++) {
-        y = deltaHue2 + j * (razmerY + 1U);
-        if (noise3d[0][0][j] > 0) { // в нулевой ячейке храним оставшееся количество ходов прокрутки
-          noise3d[0][0][j]--;
-          shift = noise3d[0][1][j] - 1; // в первой ячейке храним направление прокрутки
-          if (seamlessX) anim0 = 0U;
-          else if (globalShiftX == 0) anim0 = (deltaHue == 0U) ? 0U : deltaHue - 1U;
-          else if (globalShiftX > 0) anim0 = deltaHue;
-          else anim0 = deltaHue - 1U;
-
-          if (shift < 0) { // если крутим строку влево
-            color = leds[XY(anim0, y)];                            // берём цвет от левой колонки (левого пикселя)
-            for (uint8_t k = anim0; k < anim0 + poleX - 1; k++) {
-              color2 = leds[XY(k + 1, y)];                         // берём цвет от колонки (пикселя) правее
-              for (uint8_t m = y; m < y + razmerY; m++) {
-                leds[XY(k, m)] = color2;                           // копируем его на всю нашу колонку
-              }
-            }
-            for (uint8_t m = y; m < y + razmerY; m++) {
-              leds[XY(anim0 + poleX - 1, m)] = color;              // цвет левой колонки копируем на всю правую
-            }
-          }
-          else if (shift > 0) // если крутим столбец вверх
-          {
-            color = leds[XY(anim0 + poleX - 1, y)];                // берём цвет от правой колонки
-            for (uint8_t k = anim0 + poleX - 1; k > anim0 ; k--) {
-              color2 = leds[XY(k - 1, y)];                         // берём цвет от колонки левее
-              for (uint8_t m = y; m < y + razmerY; m++) {
-                leds[XY(k, m)] = color2;                           // копируем его на всю нашу колонку
-              }
-            }
-            for (uint8_t m = y; m < y + razmerY; m++) {
-              leds[XY(anim0, m)] = color;                          // цвет правой колонки копируем на всю левую
-            }
-          }
-        }
-      }
-    }
-  }
-  else if (hue2 != 0U) hue2--;                                    // пропускаем кадры после прокрутки кубика (делаем паузу)
-  if (step >= deltaValue) { // если цикл вращения завершён, меняем местами соответствующие ячейки (цвет в них) и точку первой ячейки
-    step = 0U;
-    hue2 = PAUSE_MAX;
-    //если часть ячеек двигалась на 1 пиксель, пододвигаем глобальные координаты начала
-    deltaHue2 = deltaHue2 + globalShiftY; //+= globalShiftY;
-    globalShiftY = 0;
-    //deltaHue += globalShiftX; для бесшовной не годится
-    deltaHue = (WIDTH + deltaHue + globalShiftX) % WIDTH;
-    globalShiftX = 0;
-
-    //пришла пора выбрать следующие параметры вращения
-    kudaVse = 0;
-    krutimVertikalno = random8(2U);
-    if (krutimVertikalno) {             // идём по горизонтали, крутим по вертикали (столбцы двигаются)
-      for (uint8_t i = 0U; i < shtukX; i++) {
-        noise3d[0][i][1] = random8(3);
-        shift = noise3d[0][i][1] - 1; // в первой ячейке храним направление прокрутки
-        if (kudaVse == 0) kudaVse = shift;
-        else if (shift != 0 && kudaVse != shift) kudaVse = 50;
-      }
-      deltaValue = razmerY + ((deltaHue2 - kudaVse >= 0 && deltaHue2 - kudaVse + poleY < (int)HEIGHT) ? random8(2U) : 1U);
-
-      if (deltaValue == razmerY) { // значит полюбому kudaVse было = (-1, 0, +1) - и для нуля в том числе мы двигаем весь куб на 1 пиксель
-        globalShiftY = 1 - kudaVse; //временно на единичку больше, чем надо
-        for (uint8_t i = 0U; i < shtukX; i++)
-          if (noise3d[0][i][1] == 1U) { // если ячейка никуда не планировала двигаться
-            noise3d[0][i][1] = globalShiftY;
-            noise3d[0][i][0] = 1U; // в нулевой ячейке храним количество ходов сдвига
-          } else {
-            noise3d[0][i][0] = deltaValue; // в нулевой ячейке храним количество ходов сдвига
-          }
-        globalShiftY--;
-      } else {
-        x = 0;
-        for (uint8_t i = 0U; i < shtukX; i++) {
-          if (noise3d[0][i][1] != 1U) {
-            y = random8(shtukY);
-            if (y > x)
-              x = y;
-            noise3d[0][i][0] = deltaValue * (x + 1U); // в нулевой ячейке храним количество ходов сдвига
-          }
-        }
-        deltaValue = deltaValue * (x + 1U);
-      }
-    } else  {// идём по вертикали, крутим по горизонтали (строки двигаются)
-
-      for (uint8_t j = 0U; j < shtukY; j++) {
-        noise3d[0][1][j] = random8(3);
-        shift = noise3d[0][1][j] - 1;                 // в первой ячейке храним направление прокрутки
-        if (kudaVse == 0) kudaVse = shift;
-        else if (shift != 0 && kudaVse != shift) kudaVse = 50;
-      }
-      if (seamlessX) {
-        deltaValue = razmerX + ((kudaVse < 50) ? random8(2U) : 1U);
-      } else {
-        deltaValue = razmerX + ((deltaHue - kudaVse >= 0 && deltaHue - kudaVse + poleX < (int)WIDTH) ? random8(2U) : 1U);
-      }
-      if (deltaValue == razmerX) {                // значит полюбому kudaVse было = (-1, 0, +1) - и для нуля в том числе мы двигаем весь куб на 1 пиксель
-        globalShiftX = 1 - kudaVse; //временно на единичку больше, чем надо
-        for (uint8_t j = 0U; j < shtukY; j++) {
-          if (noise3d[0][1][j] == 1U) { // если ячейка никуда не планировала двигаться
-            noise3d[0][1][j] = globalShiftX;
-            noise3d[0][0][j] = 1U; // в нулевой ячейке храним количество ходов сдвига
-          } else {
-            noise3d[0][0][j] = deltaValue; // в нулевой ячейке храним количество ходов сдвига
-          }
-          globalShiftX--;
-        }
-      } else {
-        y = 0;
-        for (uint8_t j = 0U; j < shtukY; j++) {
-          if (noise3d[0][1][j] != 1U) {
-            x = random8(shtukX);
-            if (x > y)
-              y = x;
-            noise3d[0][0][j] = deltaValue * (x + 1U); // в нулевой ячейке храним количество ходов сдвига
-          }
-        }
-        deltaValue = deltaValue * (y + 1U);
-      }
-    }
-  }
-}
-
-// =====================================
-//                Чacы
-// =====================================
-//             © SottNick
-
-#ifdef USE_TIME_EFFECT
-#define CLOCK_SAVE_MODE     // удалите или закомментируйте эту строчку, чтобы цифры всегда оставались на одном месте, не двигались по вертикали (не хорошо для светодиодов. выгорают зря)
-#if (HEIGHT > 12) || (HEIGHT < 11)
-#define CLOCK_BLINKING      // удалите или закомментируйте эту строчку, чтобы точки не мигали
-#endif
-//uint8_t hue, hue2; // храним тут часы и минуты
-//uint8_t deltaHue, deltaHue2; // храним здесь задержки мигания точек
-//uint8_t deltaValue; // счётчик цикла / яркости точек на часах
-//uint8_t poleX, poleY; // храним здесь сдвиг циферблата по горизонтали и вертикали (переменные объявлены в эффекте Кубик Рубика)
-static const uint8_t clockFont3x5[10][3] PROGMEM = { // цифры зеркально и на левом боку (так проще рисовать в циклах и экономнее для памяти)
-  { B11111,
-    B10001,
-    B11111
-  },
-  { B01001,
-    B11111,
-    B00001
-  },
-  { B10011,
-    B10101,
-    B01001
-  },
-  { B10001,
-    B10101,
-    B01010
-  },
-  { B11100,
-    B00100,
-    B11111
-  },
-  { B11101,
-    B10101,
-    B10010
-  },
-  { B01111,
-    B10101,
-    B10111
-  },
-  { B10011,
-    B10100,
-    B11000
-  },
-  { B11111,
-    B10101,
-    B11111
-  },
-  { B11101,
-    B10101,
-    B11110
-  }
-};
-
-void drawDig3x5(uint8_t x, uint8_t y, uint8_t num, CRGB color) { // uint8_t hue, uint8_t sat, uint8_t bri = 255U
-  for (uint8_t i = 0U; i < 3U; i++) {
-    uint8_t m = pgm_read_byte(&clockFont3x5[num][i]);
-    for (uint8_t j = 0U; j < 5U; j++) {
-      if ((m >> j) & 0x01) drawPixelXY((x + i) % WIDTH, (y + j) % HEIGHT, color);
-    }
-  }
-}
-
-#if HEIGHT > 10 // часы в столбик будут только если высота 11 пикселей и больше
-void clockRoutine() {
-  if (loadingFlag) {
-#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
-    if (selectedSettings) {
-      setModeSettings(random8(20) ? 7U + random8(86U) : 100U, modes[currentMode].Speed);
-    }
-#endif //#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
-
-    loadingFlag = false;
-    poleX = (modes[currentMode].Speed - 1U) % WIDTH; //смещение цифр по горизонтали
-#ifdef CLOCK_BLINKING
-#if HEIGHT > 13
-    poleY = (modes[currentMode].Speed - 1U) / WIDTH % (HEIGHT - 13U);  //смещение цифр по вертикали (для режима CLOCK_SAVE_MODE будет меняться само)
-#else
-    poleY = 0U;
-#endif
-#else
-#if HEIGHT > 12
-    poleY = (modes[currentMode].Speed - 1U) / WIDTH % (HEIGHT - 12U);  //смещение цифр по вертикали (для режима CLOCK_SAVE_MODE будет меняться само)
-#else // и для 12 и для 11 смещаться некуда. всё впритык
-    poleY = 0U;
-#endif
-#endif
-    hue2 = 255U; // количество минут в данный момент (первоначально запредельое значение)
-    deltaHue2 = 0; // яркость точки в данный момент
-    deltaValue = modes[currentMode].Scale * 2.55; // выбранный оттенок цифр
-  }
-
-  time_t currentLocalTime = getCurrentLocalTime();
-
-  if (minute(currentLocalTime) != hue2) {
-#ifdef CLOCK_SAVE_MODE
-#ifdef CLOCK_BLINKING
-#if HEIGHT > 13
-    poleY = (poleY + 1U) % (HEIGHT - 13U);
-#endif
-#else
-#if HEIGHT > 12
-    poleY = (poleY + 1U) % (HEIGHT - 12U);
-#endif
-#endif
-#endif
-    step = 1U; // = CLOCK_REFRESH_DELAY; раньше делал постепенное затухание. получалось хуже
-    hue = hour(currentLocalTime);
-    hue2 = minute(currentLocalTime);
-  }
-  if (step > 0) { // тут меняются цифры на часах
-    step--;
-    uint8_t sat = (modes[currentMode].Scale == 100) ? 0U : 255U;
-    FastLED.clear();
-    // рисуем цифры
-#ifdef CLOCK_BLINKING
-    drawDig3x5(   poleX,               (poleY + 8U), hue  / 10U % 10U, CHSV(deltaValue, sat, 255U));
-    drawDig3x5(  (poleX + 4U) % WIDTH, (poleY + 8U), hue        % 10U, CHSV(deltaValue, sat, 255U));
-#else
-#if HEIGHT > 11
-    drawDig3x5( poleX,               (poleY + 7U), hue  / 10U % 10U, CHSV(deltaValue, sat, 255U));
-    drawDig3x5((poleX + 4U) % WIDTH, (poleY + 7U), hue        % 10U, CHSV(deltaValue, sat, 255U));
-#else // если матрица всего 11 пикселей в высоту, можно сэкономить 1 и впихнуть часы в неё. но если меньше, нужно брать код эффекта с высотой цифр 4 пикселя, а не 5
-    drawDig3x5( poleX,               (poleY + 6U), hue  / 10U % 10U, CHSV(deltaValue, sat, 255U));
-    drawDig3x5((poleX + 4U) % WIDTH, (poleY + 6U), hue        % 10U, CHSV(deltaValue, sat, 255U));
-#endif
-#endif
-    drawDig3x5(     poleX, poleY,                      hue2 / 10U % 10U, CHSV(deltaValue, sat, 255U));
-    drawDig3x5(    (poleX + 4U) % WIDTH, poleY,        hue2       % 10U, CHSV(deltaValue, sat, 255U));
-  }
-
-#ifdef CLOCK_BLINKING
-  // тут мигают точки
-  if (deltaHue2 & 0x01) {
-    deltaHue2 = deltaHue2 - ((deltaHue2 >  15U) ? 16U : 15U);//- ((deltaHue2 >  63U) ? 64U : 63U);
-  } else {
-    deltaHue2 = deltaHue2 + ((deltaHue2 < 240U) ? 16U : 15U);//+ ((deltaHue2 < 192U) ? 64U : 63U);
-  }
-  drawPixelXY((poleX + 2U) % WIDTH, poleY + 6U, CHSV(deltaValue, (modes[currentMode].Scale == 100) ? 0U : 255U, deltaHue2)); // цвет белый для .Scale=100
-  drawPixelXY((poleX + 4U) % WIDTH, poleY + 6U, CHSV(deltaValue, (modes[currentMode].Scale == 100) ? 0U : 255U, deltaHue2)); // цвет белый для .Scale=100
-
-#endif //#ifdef CLOCK_BLINKING
-}
-#else // для матриц и гирлянд от 6 до 10 пикселей в высоту #if HEIGHT > 10
-void clockRoutine() { // чтобы цифры были не в столбик, а в строчку
-  if (loadingFlag)  {
-    loadingFlag = false;
-    poleX = (modes[currentMode].Speed - 1U) % WIDTH; //смещение цифр по горизонтали
-    poleY = (modes[currentMode].Speed - 1U) / WIDTH % (HEIGHT - 5U);  //смещение цифр по вертикали (для режима CLOCK_SAVE_MODE будет меняться само)
-    hue2 = 255U; // количество минут в данный момент (первоначально запредельое значение)
-    deltaHue2 = 0; // яркость точки в данный момент
-    deltaValue = modes[currentMode].Scale * 2.55; // выбранный оттенок цифр
-  }
-  time_t currentLocalTime = getCurrentLocalTime();
-  if (minute(currentLocalTime) != hue2) {
-#ifdef CLOCK_SAVE_MODE
-    poleY = (poleY + 1U) % (HEIGHT - 5U);
-#endif
-    step = 1U;                                      // = CLOCK_REFRESH_DELAY; раньше делал постепенное затухание. получалось хуже
-    hue = hour(currentLocalTime);
-    hue2 = minute(currentLocalTime);
-  }
-  if (step > 0) {                                   // тут меняются цифры на часах
-    step--;
-    uint8_t sat = (modes[currentMode].Scale == 100) ? 0U : 255U;
-    FastLED.clear();
-    // рисуем цифры
-    drawDig3x5( poleX               , poleY, hue  / 10U % 10U, CHSV(deltaValue, sat, 255U));
-    drawDig3x5((poleX +  4U) % WIDTH, poleY, hue        % 10U, CHSV(deltaValue, sat, 255U));
-    drawDig3x5((poleX +  9U) % WIDTH, poleY, hue2 / 10U % 10U, CHSV(deltaValue, sat, 255U));
-    drawDig3x5((poleX + 13U) % WIDTH, poleY, hue2       % 10U, CHSV(deltaValue, sat, 255U));
-  }
-
-#ifdef CLOCK_BLINKING
-  // тут мигают точки
-  if (deltaHue2 & 0x01) {
-    deltaHue2 = deltaHue2 - ((deltaHue2 >  15U) ? 16U : 15U);//- ((deltaHue2 >  63U) ? 64U : 63U);
-  } else {
-    deltaHue2 = deltaHue2 + ((deltaHue2 < 240U) ? 16U : 15U);//+ ((deltaHue2 < 192U) ? 64U : 63U);
-  }
-  drawPixelXY((poleX + 8U) % WIDTH, poleY + 1U, CHSV(deltaValue, (modes[currentMode].Scale == 100) ? 0U : 255U, deltaHue2)); // цвет белый для .Scale=100
-  drawPixelXY((poleX + 8U) % WIDTH, poleY + 3U, CHSV(deltaValue, (modes[currentMode].Scale == 100) ? 0U : 255U, deltaHue2)); // цвет белый для .Scale=100
-#endif //#ifdef CLOCK_BLINKING
-}
-#endif //#if HEIGHT > 10
-#endif
 
 // ============== Smoke ================
 //             © SottNick
@@ -6739,15 +6262,9 @@ void execStringsFlame() { // внимание! эффект заточен на 
   int16_t i, j;
   if (loadingFlag) {
 #if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
-#ifdef USE_BLYNK
-    if (selectedSettings) {
-      setModeSettings(1U + random8(100U), 20U + random8(236U)); // у Блинка бегунок Масштаб всегда от 1 до 100
-    }
-#else
     if (selectedSettings) {
       setModeSettings(1U + random8(255U), 20U + random8(236U)); // на свякий случай пусть будет от 1 до 255, а не от нуля
     }
-#endif
 #endif //#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
 
     loadingFlag = false;
@@ -7291,6 +6808,451 @@ void FlowerRuta() {
   }
   }
 */
+
+
+/*
+  // =====================================
+  //            Kyбик Pyбикa
+  // =====================================
+  //             © SottNick
+  #define PAUSE_MAX 7 // пропустить 7 кадров после завершения анимации сдвига ячеек
+  uint8_t razmerX, razmerY; // размеры ячеек по горизонтали / вертикали
+  uint8_t shtukX, shtukY; // количество ячеек по горизонтали / вертикали
+  uint8_t poleX, poleY; // размер всего поля по горизонтали / вертикали (в том числе 1 дополнительная пустая дорожка-разделитель с какой-то из сторон)
+  int8_t globalShiftX, globalShiftY; // нужно ли сдвинуть всё поле по окончаии цикла и в каком из направлений (-1, 0, +1)
+  bool seamlessX; // получилось ли сделать поле по Х бесшовным
+  bool krutimVertikalno; // направление вращения в данный момент
+
+  void cube2dRoutine() {
+  uint8_t x, y;
+  uint8_t anim0; // будем считать тут начальный пиксель для анимации сдвига строки/колонки
+  int8_t shift, kudaVse; // какое-то расчётное направление сдвига (-1, 0, +1)
+  CRGB color, color2;
+
+  if (loadingFlag) {
+  #if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      uint8_t tmp = random8(9U) * 11U + random8(8U); // масштаб 1-7, палитры все 9
+      if (tmp == 45U) tmp = 100U; //+ белый цвет
+      setModeSettings(tmp, 175U + random8(66U));
+    }
+  #endif //#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+
+    loadingFlag = false;
+    setCurrentPalette();
+    FastLED.clear();
+
+    razmerX = (modes[currentMode].Scale - 1U) % 11U + 1U; // размер ячейки от 1 до 11 пикселей для каждой из 9 палитр
+    razmerY = razmerX;
+    if (modes[currentMode].Speed & 0x01) // по идее, ячейки не обязательно должны быть квадратными, поэтому можно тут поизвращаться
+      razmerY = (razmerY << 1U) + 1U;
+
+    shtukY = HEIGHT / (razmerY + 1U);
+    if (shtukY < 2U)
+      shtukY = 2U;
+    y = HEIGHT / shtukY - 1U;
+    if (razmerY > y)
+      razmerY = y;
+    poleY = (razmerY + 1U) * shtukY;
+    shtukX = WIDTH / (razmerX + 1U);
+    if (shtukX < 2U)
+      shtukX = 2U;
+    x = WIDTH / shtukX - 1U;
+    if (razmerX > x)
+      razmerX = x;
+    poleX = (razmerX + 1U) * shtukX;
+    seamlessX = (poleX == WIDTH);
+    deltaHue = 0U;
+    deltaHue2 = 0U;
+    globalShiftX = 0;
+    globalShiftY = 0;
+
+    for (uint8_t j = 0U; j < shtukY; j++) {
+      y = j * (razmerY + 1U); // + deltaHue2 т.к. оно =0U
+      for (uint8_t i = 0U; i < shtukX; i++) {
+        x = i * (razmerX + 1U); // + deltaHue т.к. оно =0U
+        if (modes[currentMode].Scale == 100U) {
+          color = CHSV(45U, 0U, 128U + random8(128U));
+        } else {
+          color = ColorFromPalette(*curPalette, random8());
+        }
+        for (uint8_t k = 0U; k < razmerY; k++) {
+          for (uint8_t m = 0U; m < razmerX; m++) {
+            leds[XY(x + m, y + k)] = color;
+          }
+        }
+      }
+    }
+    step = 4U; // текущий шаг сдвига первоначально с перебором (от 0 до deltaValue-1)
+    deltaValue = 4U; // всего шагов сдвига (от razmer? до (razmer?+1) * shtuk?)
+    hue2 = 0U; // осталось шагов паузы
+  }
+
+  //двигаем, что получилось...
+  if (hue2 == 0 && step < deltaValue) { // если пауза закончилась, а цикл вращения ещё не завершён
+    step++;
+    if (krutimVertikalno) {
+      for (uint8_t i = 0U; i < shtukX; i++) {
+        x = (deltaHue + i * (razmerX + 1U)) % WIDTH;
+        if (noise3d[0][i][0] > 0) { // в нулевой ячейке храним оставшееся количество ходов прокрутки
+          noise3d[0][i][0]--;
+          shift = noise3d[0][i][1] - 1; // в первой ячейке храним направление прокрутки
+
+          if (globalShiftY == 0)
+            anim0 = (deltaHue2 == 0U) ? 0U : deltaHue2 - 1U;
+          else if (globalShiftY > 0)
+            anim0 = deltaHue2;
+          else
+            anim0 = deltaHue2 - 1U;
+
+          if (shift < 0) { // если крутим столбец вниз
+            color = leds[XY(x, anim0)];                                   // берём цвет от нижней строчки
+            for (uint8_t k = anim0; k < anim0 + poleY - 1; k++) {
+              color2 = leds[XY(x, k + 1)];                                // берём цвет от строчки над нашей
+              for (uint8_t m = x; m < x + razmerX; m++) {
+                leds[XY(m % WIDTH, k)] = color2;                          // копируем его на всю нашу строку
+              }
+            }
+            for (uint8_t m = x; m < x + razmerX; m++) {
+              leds[XY(m % WIDTH, anim0 + poleY - 1)] = color;             // цвет нижней строчки копируем на всю верхнюю
+            }
+          }
+          else if (shift > 0) // если крутим столбец вверх
+          {
+            color = leds[XY(x, anim0 + poleY - 1)];                       // берём цвет от верхней строчки
+            for (uint8_t k = anim0 + poleY - 1; k > anim0 ; k--) {
+              color2 = leds[XY(x, k - 1)];                                // берём цвет от строчки под нашей
+              for (uint8_t m = x; m < x + razmerX; m++) {
+                leds[XY(m % WIDTH, k)] = color2;                          // копируем его на всю нашу строку
+              }
+            }
+            for (uint8_t m = x; m < x + razmerX; m++) {
+              leds[XY(m % WIDTH, anim0)] = color;                         // цвет верхней строчки копируем на всю нижнюю
+            }
+          }
+        }
+      }
+    } else {
+      for (uint8_t j = 0U; j < shtukY; j++) {
+        y = deltaHue2 + j * (razmerY + 1U);
+        if (noise3d[0][0][j] > 0) { // в нулевой ячейке храним оставшееся количество ходов прокрутки
+          noise3d[0][0][j]--;
+          shift = noise3d[0][1][j] - 1; // в первой ячейке храним направление прокрутки
+          if (seamlessX) anim0 = 0U;
+          else if (globalShiftX == 0) anim0 = (deltaHue == 0U) ? 0U : deltaHue - 1U;
+          else if (globalShiftX > 0) anim0 = deltaHue;
+          else anim0 = deltaHue - 1U;
+
+          if (shift < 0) { // если крутим строку влево
+            color = leds[XY(anim0, y)];                            // берём цвет от левой колонки (левого пикселя)
+            for (uint8_t k = anim0; k < anim0 + poleX - 1; k++) {
+              color2 = leds[XY(k + 1, y)];                         // берём цвет от колонки (пикселя) правее
+              for (uint8_t m = y; m < y + razmerY; m++) {
+                leds[XY(k, m)] = color2;                           // копируем его на всю нашу колонку
+              }
+            }
+            for (uint8_t m = y; m < y + razmerY; m++) {
+              leds[XY(anim0 + poleX - 1, m)] = color;              // цвет левой колонки копируем на всю правую
+            }
+          }
+          else if (shift > 0) // если крутим столбец вверх
+          {
+            color = leds[XY(anim0 + poleX - 1, y)];                // берём цвет от правой колонки
+            for (uint8_t k = anim0 + poleX - 1; k > anim0 ; k--) {
+              color2 = leds[XY(k - 1, y)];                         // берём цвет от колонки левее
+              for (uint8_t m = y; m < y + razmerY; m++) {
+                leds[XY(k, m)] = color2;                           // копируем его на всю нашу колонку
+              }
+            }
+            for (uint8_t m = y; m < y + razmerY; m++) {
+              leds[XY(anim0, m)] = color;                          // цвет правой колонки копируем на всю левую
+            }
+          }
+        }
+      }
+    }
+  }
+  else if (hue2 != 0U) hue2--;                                    // пропускаем кадры после прокрутки кубика (делаем паузу)
+  if (step >= deltaValue) { // если цикл вращения завершён, меняем местами соответствующие ячейки (цвет в них) и точку первой ячейки
+    step = 0U;
+    hue2 = PAUSE_MAX;
+    //если часть ячеек двигалась на 1 пиксель, пододвигаем глобальные координаты начала
+    deltaHue2 = deltaHue2 + globalShiftY; //+= globalShiftY;
+    globalShiftY = 0;
+    //deltaHue += globalShiftX; для бесшовной не годится
+    deltaHue = (WIDTH + deltaHue + globalShiftX) % WIDTH;
+    globalShiftX = 0;
+
+    //пришла пора выбрать следующие параметры вращения
+    kudaVse = 0;
+    krutimVertikalno = random8(2U);
+    if (krutimVertikalno) {             // идём по горизонтали, крутим по вертикали (столбцы двигаются)
+      for (uint8_t i = 0U; i < shtukX; i++) {
+        noise3d[0][i][1] = random8(3);
+        shift = noise3d[0][i][1] - 1; // в первой ячейке храним направление прокрутки
+        if (kudaVse == 0) kudaVse = shift;
+        else if (shift != 0 && kudaVse != shift) kudaVse = 50;
+      }
+      deltaValue = razmerY + ((deltaHue2 - kudaVse >= 0 && deltaHue2 - kudaVse + poleY < (int)HEIGHT) ? random8(2U) : 1U);
+
+      if (deltaValue == razmerY) { // значит полюбому kudaVse было = (-1, 0, +1) - и для нуля в том числе мы двигаем весь куб на 1 пиксель
+        globalShiftY = 1 - kudaVse; //временно на единичку больше, чем надо
+        for (uint8_t i = 0U; i < shtukX; i++)
+          if (noise3d[0][i][1] == 1U) { // если ячейка никуда не планировала двигаться
+            noise3d[0][i][1] = globalShiftY;
+            noise3d[0][i][0] = 1U; // в нулевой ячейке храним количество ходов сдвига
+          } else {
+            noise3d[0][i][0] = deltaValue; // в нулевой ячейке храним количество ходов сдвига
+          }
+        globalShiftY--;
+      } else {
+        x = 0;
+        for (uint8_t i = 0U; i < shtukX; i++) {
+          if (noise3d[0][i][1] != 1U) {
+            y = random8(shtukY);
+            if (y > x)
+              x = y;
+            noise3d[0][i][0] = deltaValue * (x + 1U); // в нулевой ячейке храним количество ходов сдвига
+          }
+        }
+        deltaValue = deltaValue * (x + 1U);
+      }
+    } else  {// идём по вертикали, крутим по горизонтали (строки двигаются)
+
+      for (uint8_t j = 0U; j < shtukY; j++) {
+        noise3d[0][1][j] = random8(3);
+        shift = noise3d[0][1][j] - 1;                 // в первой ячейке храним направление прокрутки
+        if (kudaVse == 0) kudaVse = shift;
+        else if (shift != 0 && kudaVse != shift) kudaVse = 50;
+      }
+      if (seamlessX) {
+        deltaValue = razmerX + ((kudaVse < 50) ? random8(2U) : 1U);
+      } else {
+        deltaValue = razmerX + ((deltaHue - kudaVse >= 0 && deltaHue - kudaVse + poleX < (int)WIDTH) ? random8(2U) : 1U);
+      }
+      if (deltaValue == razmerX) {                // значит полюбому kudaVse было = (-1, 0, +1) - и для нуля в том числе мы двигаем весь куб на 1 пиксель
+        globalShiftX = 1 - kudaVse; //временно на единичку больше, чем надо
+        for (uint8_t j = 0U; j < shtukY; j++) {
+          if (noise3d[0][1][j] == 1U) { // если ячейка никуда не планировала двигаться
+            noise3d[0][1][j] = globalShiftX;
+            noise3d[0][0][j] = 1U; // в нулевой ячейке храним количество ходов сдвига
+          } else {
+            noise3d[0][0][j] = deltaValue; // в нулевой ячейке храним количество ходов сдвига
+          }
+          globalShiftX--;
+        }
+      } else {
+        y = 0;
+        for (uint8_t j = 0U; j < shtukY; j++) {
+          if (noise3d[0][1][j] != 1U) {
+            x = random8(shtukX);
+            if (x > y)
+              y = x;
+            noise3d[0][0][j] = deltaValue * (x + 1U); // в нулевой ячейке храним количество ходов сдвига
+          }
+        }
+        deltaValue = deltaValue * (y + 1U);
+      }
+    }
+  }
+  }//
+
+*/
+/*
+  // =====================================
+  //                Чacы
+  // =====================================
+  //             © SottNick
+
+  #ifdef USE_TIME_EFFECT
+  #define CLOCK_SAVE_MODE     // удалите или закомментируйте эту строчку, чтобы цифры всегда оставались на одном месте, не двигались по вертикали (не хорошо для светодиодов. выгорают зря)
+  #if (HEIGHT > 12) || (HEIGHT < 11)
+  #define CLOCK_BLINKING      // удалите или закомментируйте эту строчку, чтобы точки не мигали
+  #endif
+  //uint8_t hue, hue2; // храним тут часы и минуты
+  //uint8_t deltaHue, deltaHue2; // храним здесь задержки мигания точек
+  //uint8_t deltaValue; // счётчик цикла / яркости точек на часах
+  //uint8_t poleX, poleY; // храним здесь сдвиг циферблата по горизонтали и вертикали (переменные объявлены в эффекте Кубик Рубика)
+  static const uint8_t clockFont3x5[10][3] PROGMEM = { // цифры зеркально и на левом боку (так проще рисовать в циклах и экономнее для памяти)
+  { B11111,
+    B10001,
+    B11111
+  },
+  { B01001,
+    B11111,
+    B00001
+  },
+  { B10011,
+    B10101,
+    B01001
+  },
+  { B10001,
+    B10101,
+    B01010
+  },
+  { B11100,
+    B00100,
+    B11111
+  },
+  { B11101,
+    B10101,
+    B10010
+  },
+  { B01111,
+    B10101,
+    B10111
+  },
+  { B10011,
+    B10100,
+    B11000
+  },
+  { B11111,
+    B10101,
+    B11111
+  },
+  { B11101,
+    B10101,
+    B11110
+  }
+  };
+
+  void drawDig3x5(uint8_t x, uint8_t y, uint8_t num, CRGB color) { // uint8_t hue, uint8_t sat, uint8_t bri = 255U
+  for (uint8_t i = 0U; i < 3U; i++) {
+    uint8_t m = pgm_read_byte(&clockFont3x5[num][i]);
+    for (uint8_t j = 0U; j < 5U; j++) {
+      if ((m >> j) & 0x01) drawPixelXY((x + i) % WIDTH, (y + j) % HEIGHT, color);
+    }
+  }
+  }
+
+  #if HEIGHT > 10 // часы в столбик будут только если высота 11 пикселей и больше
+  void clockRoutine() {
+  if (loadingFlag) {
+  #if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      setModeSettings(random8(20) ? 7U + random8(86U) : 100U, modes[currentMode].Speed);
+    }
+  #endif //#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+
+    loadingFlag = false;
+    poleX = (modes[currentMode].Speed - 1U) % WIDTH; //смещение цифр по горизонтали
+  #ifdef CLOCK_BLINKING
+  #if HEIGHT > 13
+    poleY = (modes[currentMode].Speed - 1U) / WIDTH % (HEIGHT - 13U);  //смещение цифр по вертикали (для режима CLOCK_SAVE_MODE будет меняться само)
+  #else
+    poleY = 0U;
+  #endif
+  #else
+  #if HEIGHT > 12
+    poleY = (modes[currentMode].Speed - 1U) / WIDTH % (HEIGHT - 12U);  //смещение цифр по вертикали (для режима CLOCK_SAVE_MODE будет меняться само)
+  #else // и для 12 и для 11 смещаться некуда. всё впритык
+    poleY = 0U;
+  #endif
+  #endif
+    hue2 = 255U; // количество минут в данный момент (первоначально запредельое значение)
+    deltaHue2 = 0; // яркость точки в данный момент
+    deltaValue = modes[currentMode].Scale * 2.55; // выбранный оттенок цифр
+  }
+
+  time_t currentLocalTime = getCurrentLocalTime();
+
+  if (minute(currentLocalTime) != hue2) {
+  #ifdef CLOCK_SAVE_MODE
+  #ifdef CLOCK_BLINKING
+  #if HEIGHT > 13
+    poleY = (poleY + 1U) % (HEIGHT - 13U);
+  #endif
+  #else
+  #if HEIGHT > 12
+    poleY = (poleY + 1U) % (HEIGHT - 12U);
+  #endif
+  #endif
+  #endif
+    step = 1U; // = CLOCK_REFRESH_DELAY; раньше делал постепенное затухание. получалось хуже
+    hue = hour(currentLocalTime);
+    hue2 = minute(currentLocalTime);
+  }
+  if (step > 0) { // тут меняются цифры на часах
+    step--;
+    uint8_t sat = (modes[currentMode].Scale == 100) ? 0U : 255U;
+    FastLED.clear();
+    // рисуем цифры
+  #ifdef CLOCK_BLINKING
+    drawDig3x5(   poleX,               (poleY + 8U), hue  / 10U % 10U, CHSV(deltaValue, sat, 255U));
+    drawDig3x5(  (poleX + 4U) % WIDTH, (poleY + 8U), hue        % 10U, CHSV(deltaValue, sat, 255U));
+  #else
+  #if HEIGHT > 11
+    drawDig3x5( poleX,               (poleY + 7U), hue  / 10U % 10U, CHSV(deltaValue, sat, 255U));
+    drawDig3x5((poleX + 4U) % WIDTH, (poleY + 7U), hue        % 10U, CHSV(deltaValue, sat, 255U));
+  #else // если матрица всего 11 пикселей в высоту, можно сэкономить 1 и впихнуть часы в неё. но если меньше, нужно брать код эффекта с высотой цифр 4 пикселя, а не 5
+    drawDig3x5( poleX,               (poleY + 6U), hue  / 10U % 10U, CHSV(deltaValue, sat, 255U));
+    drawDig3x5((poleX + 4U) % WIDTH, (poleY + 6U), hue        % 10U, CHSV(deltaValue, sat, 255U));
+  #endif
+  #endif
+    drawDig3x5(     poleX, poleY,                      hue2 / 10U % 10U, CHSV(deltaValue, sat, 255U));
+    drawDig3x5(    (poleX + 4U) % WIDTH, poleY,        hue2       % 10U, CHSV(deltaValue, sat, 255U));
+  }
+
+  #ifdef CLOCK_BLINKING
+  // тут мигают точки
+  if (deltaHue2 & 0x01) {
+    deltaHue2 = deltaHue2 - ((deltaHue2 >  15U) ? 16U : 15U);//- ((deltaHue2 >  63U) ? 64U : 63U);
+  } else {
+    deltaHue2 = deltaHue2 + ((deltaHue2 < 240U) ? 16U : 15U);//+ ((deltaHue2 < 192U) ? 64U : 63U);
+  }
+  drawPixelXY((poleX + 2U) % WIDTH, poleY + 6U, CHSV(deltaValue, (modes[currentMode].Scale == 100) ? 0U : 255U, deltaHue2)); // цвет белый для .Scale=100
+  drawPixelXY((poleX + 4U) % WIDTH, poleY + 6U, CHSV(deltaValue, (modes[currentMode].Scale == 100) ? 0U : 255U, deltaHue2)); // цвет белый для .Scale=100
+
+  #endif //#ifdef CLOCK_BLINKING
+  }
+  #else // для матриц и гирлянд от 6 до 10 пикселей в высоту #if HEIGHT > 10
+  void clockRoutine() { // чтобы цифры были не в столбик, а в строчку
+  if (loadingFlag)  {
+    loadingFlag = false;
+    poleX = (modes[currentMode].Speed - 1U) % WIDTH; //смещение цифр по горизонтали
+    poleY = (modes[currentMode].Speed - 1U) / WIDTH % (HEIGHT - 5U);  //смещение цифр по вертикали (для режима CLOCK_SAVE_MODE будет меняться само)
+    hue2 = 255U; // количество минут в данный момент (первоначально запредельое значение)
+    deltaHue2 = 0; // яркость точки в данный момент
+    deltaValue = modes[currentMode].Scale * 2.55; // выбранный оттенок цифр
+  }
+  time_t currentLocalTime = getCurrentLocalTime();
+  if (minute(currentLocalTime) != hue2) {
+  #ifdef CLOCK_SAVE_MODE
+    poleY = (poleY + 1U) % (HEIGHT - 5U);
+  #endif
+    step = 1U;                                      // = CLOCK_REFRESH_DELAY; раньше делал постепенное затухание. получалось хуже
+    hue = hour(currentLocalTime);
+    hue2 = minute(currentLocalTime);
+  }
+  if (step > 0) {                                   // тут меняются цифры на часах
+    step--;
+    uint8_t sat = (modes[currentMode].Scale == 100) ? 0U : 255U;
+    FastLED.clear();
+    // рисуем цифры
+    drawDig3x5( poleX               , poleY, hue  / 10U % 10U, CHSV(deltaValue, sat, 255U));
+    drawDig3x5((poleX +  4U) % WIDTH, poleY, hue        % 10U, CHSV(deltaValue, sat, 255U));
+    drawDig3x5((poleX +  9U) % WIDTH, poleY, hue2 / 10U % 10U, CHSV(deltaValue, sat, 255U));
+    drawDig3x5((poleX + 13U) % WIDTH, poleY, hue2       % 10U, CHSV(deltaValue, sat, 255U));
+  }
+
+  #ifdef CLOCK_BLINKING
+  // тут мигают точки
+  if (deltaHue2 & 0x01) {
+    deltaHue2 = deltaHue2 - ((deltaHue2 >  15U) ? 16U : 15U);//- ((deltaHue2 >  63U) ? 64U : 63U);
+  } else {
+    deltaHue2 = deltaHue2 + ((deltaHue2 < 240U) ? 16U : 15U);//+ ((deltaHue2 < 192U) ? 64U : 63U);
+  }
+  drawPixelXY((poleX + 8U) % WIDTH, poleY + 1U, CHSV(deltaValue, (modes[currentMode].Scale == 100) ? 0U : 255U, deltaHue2)); // цвет белый для .Scale=100
+  drawPixelXY((poleX + 8U) % WIDTH, poleY + 3U, CHSV(deltaValue, (modes[currentMode].Scale == 100) ? 0U : 255U, deltaHue2)); // цвет белый для .Scale=100
+  #endif //#ifdef CLOCK_BLINKING
+  }
+  #endif //#if HEIGHT > 10
+  #endif
+*/
+
+
+
+
 
 /*
   // =====================================

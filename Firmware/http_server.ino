@@ -123,13 +123,15 @@ void ResetDefaultEffects() {
   updateSets();
   showWarning(CRGB::Blue, 2000U, 500U);                    // мигание синим цветом 2 секунды
 }
+
 // ======================================
-// Remote Control Command ---------------
-void handle_cmd() {
-  uint8_t cmd = HTTP.arg("cmd").toInt();
-  String valStr = HTTP.arg("valStr");
-  uint8_t val = HTTP.arg("val") ? HTTP.arg("val").toInt() : 0;
+String runCommand(byte cmd, uint8_t val, String valStr) {
   String body = "";
+#ifdef GENERAL_DEBUG
+  //  LOG.printf_P(PSTR("RUN COMMAND • %02d | val • %03d | "), cmd, val);
+  //  LOG.println(valStr);
+#endif
+  /* ------------------------------------ */
   switch (cmd ) {
     case CMD_POWER:
       if (val == 3) {               // toggle
@@ -222,9 +224,6 @@ void handle_cmd() {
       break;
     case CMD_RESET_EFF:
       ResetDefaultEffects();
-#ifdef USE_BLYNK
-      updateRemoteBlynkParams();
-#endif
       break;
     case CMD_AUTO:
       cycleEffect();
@@ -313,15 +312,15 @@ void handle_cmd() {
       body += getLampID() + ",";
       body += getDirFS();
       sendResponse(cmd, body);
-      return;
+      return "";
 
     // develop commands -----
     case CMD_IP:
       showIP();
-      return;
+      return "";
     case CMD_TEST_MATRIX:
       testMatrix(val);
-      return;
+      return "";
     case CMD_CUSTOM_EFF:
       if (val == 2) {               // restore
         custom_eff = jsonReadtoInt(configSetup, "custom_eff");
@@ -329,13 +328,13 @@ void handle_cmd() {
       } else {
         custom_eff = val;           // toggle
       }
-      return;
+      return "";
     case CMD_FW_INFO:
     case CMD_INFO:
       body += getLampID() + ",";
       body += getInfo();
       sendResponse(cmd, body);
-      return;
+      return "";
     case CMD_ECHO:
       warnDinamicColor(val);
       break;
@@ -362,7 +361,7 @@ void handle_cmd() {
       saveConfig();
       showWarning(CRGB::MediumSeaGreen, 2000U, 500U);
       ESP.restart();
-      return;
+      break;
     case CMD_ACTIVATE:
       eff_valid = val;
       jsonWrite(configSetup, "eff_valid", eff_valid);
@@ -376,7 +375,7 @@ void handle_cmd() {
     // javelin --------------
     case CMD_EFF_JAVELIN:
       JavelinStatic(val);
-      return;
+      return "";
     case CMD_DIAGNOSTIC:
 #ifdef  JAVELIN
       if (val == 0) {
@@ -390,14 +389,25 @@ void handle_cmd() {
       body += getDiagnosticProgress();
       sendResponse(cmd, body);
 #endif
-      return;
+      return body;
     default:
       break;
   }
 
+  return body;
+}
+
+// ======================================
+// Http Remote Control Command ----------
+void handle_cmd() {
+  uint8_t cmd = HTTP.arg("cmd").toInt();
+  String valStr = HTTP.arg("valStr");
+  uint8_t val = HTTP.arg("val") ? HTTP.arg("val").toInt() : 0;
+  String body = runCommand(cmd, val, valStr);
   body += getCurState();
   sendResponse(cmd, body);
 }
+
 // ======================================
 #ifdef JAVELIN
 String getDiagnosticProgress() {
