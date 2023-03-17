@@ -2954,6 +2954,50 @@ void Spermatozoa() {
   }
 }
 
+
+// =====================================
+//           Rainbow Tornado
+//  base code © Stepko and © Sutaburosu
+//            © SlingMaster
+//          Райдужний Торнадо
+// =====================================
+/* --------------------------------- */
+void Tornado() {
+  const uint8_t mapp = 255 / WIDTH;
+  const byte OFFSET = 2U;
+  const uint8_t H = HEIGHT - OFFSET;
+  static uint32_t t;
+  static byte scaleXY = 4;
+
+  if (loadingFlag) {
+#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      // scale | speed
+      setModeSettings(random8(1U, 255U), random8(10U, 100U));
+    }
+#endif
+    loadingFlag = false;
+    scaleXY = 2 + modes[currentMode].Scale / 10;
+
+    FastLED.clear();
+    for (int8_t x = -CENTER_X_MAJOR; x < CENTER_X_MAJOR; x++) {
+      for (int8_t y = -OFFSET; y < H; y++) {
+        noise3d[0][x + CENTER_X_MAJOR][y + OFFSET] = 128 * (atan2(y, x) / PI);
+        noise3d[1][x + CENTER_X_MAJOR][y + OFFSET] = hypot(x, y);                    // thanks Sutaburosu
+      }
+    }
+  }
+  t += 8;
+  for (uint8_t x = 0; x < WIDTH; x++) {
+    for (uint8_t y = 0; y < HEIGHT; y++) {
+      byte angle = noise3d[0][x][y];
+      byte radius = noise3d[1][x][y];
+      leds[XY(x, y)] = CHSV((angle * scaleXY) - t + (radius * scaleXY), constrain(y * 16, (y < 5 ? (y * 16) : 96), 255), (y < 5 ? 255 - ((5 - y) * 16) : 255));
+    }
+  }
+}
+
+
 // ========== Creative  Watch ===========
 //             © SlingMaster
 //          Креативний Годинник
@@ -3000,8 +3044,7 @@ void CreativeWatch() {
   time_t currentLocalTime;
   uint8_t sec;
   // ---------------------
-  //, CRGB::LightGoldenrodYellow , CRGB::Goldenrod, CRGB::SteelBlue
-
+  
   if (loadingFlag) {
 #if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
     if (selectedSettings) {
@@ -3025,8 +3068,6 @@ void CreativeWatch() {
       drawPixelXY(x, CENTER_Y_MAJOR, ((x % 2U == 0U) ? dataColors[index] : 0x000000));
     }
   }
-
-  // pcnt = modes[currentMode].Scale / 4;
 
   // change color ----
   static int64_t frameCount =  0;
@@ -3072,34 +3113,11 @@ void CreativeWatch() {
       drawPixelXY(x, CENTER_Y_MAJOR, getPixColorXY(x + 1, CENTER_Y_MAJOR));
     }
   }
-  /* // line rotate
-    if (step % 2U == 0) {
-    for (uint8_t x = 0U; x < WIDTH; x++) {
-      if (step % 4U == 0) {
-        drawPixelXY(WIDTH - 1, 0, CHSV(176, 255, 255 - hue));
-      }
-      // DrawLine(WIDTH - 1, 0, WIDTH - 1, 4, CHSV(176, 255, 255 - hue));
-      uint8_t last_color = getPixColorXY(x + 1, 0);
-      DrawLine(x, HEIGHT - 5, x, HEIGHT - 1, last_color);
-      DrawLine(x, 0, x, 4, last_color);
-    }
-    hue += 16;
-    } */
 
-  //  unsigned long milli = millis();
-  //  double t = milli / 1000.0;
   // body if big height matrix ---------
   if (HEIGHT > 20U) {
     for (uint16_t y = 0; y < HEIGHT; y++) {
       for (uint16_t x = 0; x < WIDTH; x++) {
-        // var 2 ------------------------
-        // if (((y > CENTER_Y_MAJOR + 10) & (y < HEIGHT - 3)) | ((y >= 2) & (y < 5))) {
-        //      if (((y > CENTER_Y_MAJOR + 9) & (y < HEIGHT - 3)) | ((y > 3) & (y < CENTER_Y_MAJOR - 9))) {
-        //        processFrame(t, x, y);
-        //        hue = 32U; hue2 = 190U;
-        //      }
-        // ------------------------------
-
         r = sin8((x - 8) * cos8((y + 20) * 4) / 4);
         g = cos8((y << 3) + t1 + cos8((t3 >> 2) + (x << 3)));
         b = cos8((y << 3) + t2 + cos8(t1 + x + (g >> 2)));
@@ -3116,9 +3134,7 @@ void CreativeWatch() {
           r = (b < 128) ? exp_gamma[g] / 2 : 0;
         }
         // ---------------------
-
-        // if (( (y > HEIGHT - 6) | (y < 6) | (x < 3) | (x > WIDTH - 4) ) & ((x % 2) | (y < 5) | (y > HEIGHT - 5)) ) { & ((y < CENTER_Y_MAJOR - 12) | (y > CENTER_Y_MAJOR + 11) )
-        if ((( (y < CENTER_Y_MAJOR - 11) | y > CENTER_Y_MAJOR + 10) | (x < PADDING) | (x > WIDTH - PADDING - 1) )) {
+         if ((( (y < CENTER_Y_MAJOR - 11) | y > CENTER_Y_MAJOR + 10) | (x < PADDING) | (x > WIDTH - PADDING - 1) )) {
           leds[XY(x, y)] = CRGB(r, g, b);
         }
       }
@@ -3146,4 +3162,3 @@ void CreativeWatch() {
 // ==============
 // END ==============
 // ==============
-
