@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en-US-x-Hixie">
+
+<head>
+    <title>Projector</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+    <link rel="shortcut icon" href="img/favicon.ico" />
+    <link rel="apple-touch-icon-precomposed" href="img/ico_javelin.png" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <!-- Run in full-screen mode. -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <!-- Make the status bar black with white text. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <!-- Disable phone number detection. -->
+    <!-- Set viewport. -->
+    <meta name="viewport" content="width=device-width, 
+              initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" />
+    <style>
+        html,
+        body,
+        div,
+        p,
+        video {
+            margin: 0;
+            padding: 0;
+            border: 0;
+            box-sizing: border-box;
+            font-size: 100%;
+            vertical-align: baseline;
+            -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+        }
+
+        body {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: black;
+        }
+
+        .cs_content {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-position: center center;
+            background-image: url(img/msg.png);
+            background-repeat: no-repeat;
+        }
+
+        .cs_content_container {
+            position: absolute;
+            float: left;
+            display: block;
+            width: 100%;
+            height: 100%;
+            background-position: center center;
+            background-image: none;
+            background-repeat: no-repeat;
+            pointer-events: auto;
+            background-size: contain;
+            background-color: black;
+            cursor: pointer;
+        }
+
+        .cs_content_container.bg {
+            background-color: transparent;
+            background-size: cover;
+        }
+    </style>
+
+    <!-- Libs   -->
+    <script type="text/javascript" src="libs/jquery-2.1.4.min.js"></script>
+    <!-- Scripts -->
+    <script>
+        var imageAnimate = "";
+        // Start ===================================
+        window.onload = function () {
+            'use strict';
+            imageAnimate = getHTMLVariable("img") || "";
+            createUI();
+        }
+
+        function createUI() {
+            'use strict';
+            if (imageAnimate !== "") {
+                $("#img_anime").css("background-image", 'url(./ani/' + imageAnimate + ')');
+                $(".flex_container").html('<p>• ' + imageAnimate + ' •</p>');
+            }
+        }
+
+
+        function clickUI(evt) {
+            'use strict';
+            $(evt.target).toggleClass('bg');
+        }
+
+        // ===============================================
+        function getHTMLVariable(varName) {
+            "use strict";
+            var arg = location.search.substring(1).split("&");
+            var variable = "";
+            var i;
+            for (i = 0; i < arg.length; i++) {
+                if (arg[i].split("=")[0] === varName) {
+                    if (arg[i].split("=").length > 1) {
+                        variable = arg[i].split("=")[1];
+                    }
+                    return variable;
+                }
+            }
+            return "";
+        }
+    </script>
+</head>
+
+<body>
+    <div class="cs_content">
+        <div id="img_anime" class="cs_content_container bg" onClick="clickUI(event);"></div>
+    </div>
+</body>
+
+</html>
