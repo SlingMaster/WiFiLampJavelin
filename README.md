@@ -18,7 +18,7 @@ You can follow the development process on my YouTube channel SlingMasterJSC
 I would like to thank everyone who has supported us during this difficult time. Happy use.
 If anyone wants to support the project
 # donations to support the Armed Forces of Ukraine
-can be sent directly from the web page https://bank.gov.ua/ua/about/support-the-armed-forces (multi-currency account)
+can be sent directly from the [web page](https://bank.gov.ua/ua/about/support-the-armed-forces) (multi-currency account)
 
 # (UA) 
 Це подальший розвиток проекту WiFi Lamp Remote Control,
@@ -34,9 +34,7 @@ can be sent directly from the web page https://bank.gov.ua/ua/about/support-the-
 Висловлюю подяку всім, хто нас підтримав у важкий для нас час. Приємного використання.
 Якщо у когось виникне бажання заохотити проект
 # Донати для підтримки Збройних Сил України
-можна надіслати прямо з web сторінки https://bank.gov.ua/ua/about/support-the-armed-forces (рахунок мульти валютний)
-
-
+можна надіслати прямо з [web сторінки](https://bank.gov.ua/ua/about/support-the-armed-forces) (рахунок мульти валютний)
 
 
 
@@ -122,17 +120,17 @@ can be sent directly from the web page https://bank.gov.ua/ua/about/support-the-
 3. Зручний інтерфейс програми орієнтований як для простих користувачів і розробників.
 4. Статистика використання програмного забезпечення та відображення локації на google map. Программа LampRemoteStats.exe, або прямо з програми WiFiLamp Remote, треба тіки натиснути іконку в нижній частині UI програми під заголовком «Developer Tools»
 5. Двомовний інтерфасе (український, англійський)
-# !!! Будьте уважні.
-# Лампа потребує активації, для цього необхідно запустити програмне забезпечення на вибір: 
+### !!! Будьте уважні.
+### Лампа потребує активації, для цього необхідно запустити програмне забезпечення на вибір: 
 1. RemoteControlForWindows\WiFiLampRemote.exe, 
 2. Android додаток RemoteControlForAndroid,
-3. Або в браузері за посиланням http://winecard.ltd.ua/dev/LampRemote2/index.html?ip=192.168.1.1&dev=1&timeout=200&lang=0&sound=1
+3. Або в браузері [за посиланням](http://winecard.ltd.ua/dev/LampRemote2/index.html?ip=192.168.1.1&dev=1&timeout=200&lang=0&sound=1)
  * для всіх користувачів програмне забезпечення безкоштовне, активація проходить автоматично після натискання кнопки «Слава Україні» крім московії, причина я дусаю вам відоиа.
 
 ---
 ### WiFi Lamp Projector
 1. Для переходу до WiFi Lamp Projector треба натиснути помаранчовий квадрат в caption програми
-2. Зображення для відтворення повинні бути в папці UI/ani/, щоб потрапити в папку треба тапнути по логотипу WiFi Lamp Projector (сюди можна додвати зображення на свій смак, drag and drop буде працювати тіки з цієї папки)
+2. Зображення для відтворення повинні бути в папці UI/ani/, щоб потрапити в папку треба тапнути по логотипу WiFi Lamp Projector (сюди можна додавати зображення на свій смак, drag and drop буде працювати тільки з цієї папки)
 3. Запускати потрібне зображення можливо декількома шляхами:
  - drag and drop
  - навігація кнопками play control: назад, авто, вперед
@@ -145,7 +143,7 @@ can be sent directly from the web page https://bank.gov.ua/ua/about/support-the-
 # Інструкція по використанню
 ---
   Розпакуйте вміст архіву в кореневу папку на диску (не на робочий стіл, будь ласка)
-  і робіть так само, як показав Алекс Гайвер у своєму відео https://youtu.be/771-Okf0dYs?t=525. 
+  і робіть так само, як показав Алекс Гайвер у своєму [відео](https://youtu.be/771-Okf0dYs?t=525). 
   Відмінність від відео – матрицю підключаємо до D3 і кнопку живимо від 3,3 вольта.
   В архіві є файл "Прочитай мене!!.doc. Його потрібно уважно прочитати. 
   Для завантаження файлів з папки data у файлову систему контролера потрібно встановити Uploader. 
@@ -158,7 +156,7 @@ can be sent directly from the web page https://bank.gov.ua/ua/about/support-the-
   ім'я та пароль Вашої WiFi мережі відповідно. Поле "ESP_mode": змініть з 0 на 1. Збережіть файл на те саме місце та зробіть upload файлової системи. Лампа одразу підключиться до Вашої мережі. 
   Інші налаштування можна зробити зі сторінки лампи.
 
-  На YouTube каналі «SlingMasterJSC» https://www.youtube.com/user/SlingMasterJSC 
+  На YouTube каналі [«SlingMasterJSC»](https://www.youtube.com/user/SlingMasterJSC) 
   є підбірка відео, про конструкцію лампи та програмне забезпечення два плейлісти Wifi Lamp «Javelin» та Arduino Project які я рекомендую переглянути
 
 ---
@@ -176,7 +174,7 @@ Software
 2. Додано програмне забезпечення WiFi Lamp Projector для потокової трансляції, як закладка до програми Lamp Javelin Remote.
  * використання
  - для переходу до WiFi Lamp Projector треба натиснути помаранчовий квадрат в caption програми
- - зображення для відтворення повинні бути в папці UI/ani/, щоб потрапити в папку треба тапнути по логотипу WiFi Lamp Projector (сюди можна додвати зображення на свій смак, drag and drop буде працювати тіки з цієї папки)
+ - ображення для відтворення повинні бути в папці UI/ani/, щоб потрапити в папку треба тапнути по логотипу WiFi Lamp Projector (сюди можна додавати зображення на свій смак, drag and drop буде працювати тільки з цієї папки)
  - запускати потрібне зображення можливо декількома шляхами:
  • drag and drop
  • навігація кнопками play control: назад, авто, вперед
