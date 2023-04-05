@@ -222,3 +222,18 @@ float sqrt3(const float x) {
   u.i = (1 << 29) + (u.i >> 1) - (1 << 22);
   return u.x;
 }
+
+// =====================================
+//           Code by © Stepko
+CRGB rgb332ToCRGB(byte value) { // Tnx to Stepko
+  CRGB color;
+  color.r = value & 0xe0; // mask out the 3 bits of red at the start of the byte
+  color.r |= (color.r >> 3); // extend limited 0-224 range to 0-252
+  color.r |= (color.r >> 3); // extend limited 0-252 range to 0-255
+  color.g = value & 0x1c; // mask out the 3 bits of green in the middle of the byte
+  color.g |= (color.g << 3) | (color.r >> 3); // extend limited 0-34 range to 0-255
+  color.b = value & 0x03; // mask out the 2 bits of blue at the end of the byte
+  color.b |= color.b << 2; // extend 0-3 range to 0-15
+  color.b |= color.b << 4; // extend 0-15 range to 0-255
+  return color;
+}

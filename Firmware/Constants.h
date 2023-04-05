@@ -304,7 +304,7 @@ uint8_t DAWN_TIMEOUT;                                       // сколько р
 // а для входящего списка избранного - хз. пришлось увеличить до максимально возможножного значения.
 // дальше придётся переделывать типы (размеры) переменных в функциях FavoritesManager.h
 #define MAX_UDP_BUFFER_SIZE   (255U)                        // максимальный размер буффера UDP сервера
-
+#define MAX_FRAME_BUFER (NUM_LEDS + 7U)
 
 
 // Remote control ------- | не лізь бо вб'є |
@@ -350,4 +350,4 @@ uint8_t DAWN_TIMEOUT;                                       // сколько р
 #define CMD_EFF_JAVELIN       (99U)
 #define CMD_DISCOVER          (50U)
 // -------------------------------------
-String VERSION = "5.0 " + String(MODE_AMOUNT);
+String VERSION = "5.1 " + String(MODE_AMOUNT);

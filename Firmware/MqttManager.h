@@ -5,7 +5,7 @@
    Зависит от библиотек:
      ESPAsyncTCP https://github.com/me-no-dev/ESPAsyncTCP
      AsyncTCP https://github.com/me-no-dev/AsyncTCP
-   Лампа подписана на топик: LedLamp/LedLamp/xxxxxxxx/cmnd, где xxxxxxxx - ESP.getChipID(); payload - строка, содержащая те же команды, что отправляются приложением (регистр важен): 
+   Лампа подписана на топик: LedLamp/LedLamp/xxxxxxxx/cmnd, где xxxxxxxx - ESP.getChipID(); payload - строка, содержащая те же команды, что отправляются приложением (регистр важен):
 */
 
 #include <AsyncMqttClient.h>

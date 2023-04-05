@@ -3134,7 +3134,7 @@ void CreativeWatch() {
           r = (b < 128) ? exp_gamma[g] / 2 : 0;
         }
         // ---------------------
-         if ((( (y < CENTER_Y_MAJOR - 11) | y > CENTER_Y_MAJOR + 10) | (x < PADDING) | (x > WIDTH - PADDING - 1) )) {
+        if ((( (y < CENTER_Y_MAJOR - 11) | y > CENTER_Y_MAJOR + 10) | (x < PADDING) | (x > WIDTH - PADDING - 1) )) {
           leds[XY(x, y)] = CRGB(r, g, b);
         }
       }

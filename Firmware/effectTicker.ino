@@ -172,9 +172,15 @@ void effectsTick() {
   if (isJavelinMode()) {
     if (ONflag && (millis() - effTimer >= FPSdelay)) {
       effTimer = millis();
+      if (extCtrl) {
+        /* extend control by UDP protocol transfer data to led matrix */
+        return;
+      }
       if (lendLease) {
+        /* javelin eff mode --------------- */
         Javelin();
       } else {
+        /* standard start effects --------- */
         (*FuncEff[currentMode])();
       }
       /* state level indicator */

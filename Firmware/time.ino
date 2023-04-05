@@ -246,8 +246,8 @@ String Get_Time(time_t LocalTime) {
 
 //---------------------------------------
 void localTime(char *stringTime) {
- // буффер для выводимого текста, его длина должна быть НЕ МЕНЬШЕ, чем длина текста + 1
- sprintf_P(stringTime, PSTR("%02u:%02u"), (uint8_t)((thisTime - thisTime % 60U) / 60U), (uint8_t)(thisTime % 60U));
+  // буффер для выводимого текста, его длина должна быть НЕ МЕНЬШЕ, чем длина текста + 1
+  sprintf_P(stringTime, PSTR("%02u:%02u"), (uint8_t)((thisTime - thisTime % 60U) / 60U), (uint8_t)(thisTime % 60U));
 }
 
 // --------------------------------------

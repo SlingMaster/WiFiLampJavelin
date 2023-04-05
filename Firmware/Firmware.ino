@@ -10,20 +10,20 @@
   Исходники последней версии: https://github.com/SlingMaster/WiFiLamp-Javelin
   ==========================================================================================
   Розпакуйте вміст архіву в кореневу папку на диску (не на робочий стіл, будь ласка)
-  і робіть так само, як показав Алекс Гайвер у своєму відео https://youtu.be/771-Okf0dYs?t=525. 
+  і робіть так само, як показав Алекс Гайвер у своєму відео https://youtu.be/771-Okf0dYs?t=525.
   Відмінність від відео – матрицю підключаємо до D3 і кнопку живимо від 3,3 вольта.
-  В архіві є файл "Прочитай мене!!.doc. Його потрібно уважно прочитати. 
-  Для завантаження файлів з папки data у файлову систему контролера потрібно встановити Uploader. 
+  В архіві є файл "Прочитай мене!!.doc. Його потрібно уважно прочитати.
+  Для завантаження файлів з папки data у файлову систему контролера потрібно встановити Uploader.
   Відео https://esp8266-arduinoide.ru/esp8266fs/
-  Версію плати у "Менеджері плат" вибирайте 2.7.4. При першому запуску лампа створить свою WiFi мережу з ім'ям «WiFi Lamp Javelin» пароль у мережі при першому запуску буде 31415926. 
-  Після підключення до мережі «WiFi Lamp Javelin» наберіть у браузері 192.168.4.1 і зайдіть на web сторінку лампи. Там можна змінити ім'я лампи (якщо їх кілька у мережі), 
+  Версію плати у "Менеджері плат" вибирайте 2.7.4. При першому запуску лампа створить свою WiFi мережу з ім'ям «WiFi Lamp Javelin» пароль у мережі при першому запуску буде 31415926.
+  Після підключення до мережі «WiFi Lamp Javelin» наберіть у браузері 192.168.4.1 і зайдіть на web сторінку лампи. Там можна змінити ім'я лампи (якщо їх кілька у мережі),
   налаштувати підключення до Вашої домашньої WiFi мережі. Перезавантажити лампу.
-  Всі налаштування прошивки знаходяться на вкладці ConstantsUser.h (там без проблем розберетеся) і у файлі data/config.json (там можна нічого не змінювати, все змінюється потім 
-  з web-сторінки лампи). Але якщо хочете, щоб лампа відразу підключилася до Вашої WiFi мережі, введіть у файлі data/cofig.json у поля "ssid": та "password": 
-  ім'я та пароль Вашої WiFi мережі відповідно. Поле "ESP_mode": змініть з 0 на 1. Збережіть файл на те саме місце та зробіть upload файлової системи. Лампа одразу підключиться до Вашої мережі. 
+  Всі налаштування прошивки знаходяться на вкладці ConstantsUser.h (там без проблем розберетеся) і у файлі data/config.json (там можна нічого не змінювати, все змінюється потім
+  з web-сторінки лампи). Але якщо хочете, щоб лампа відразу підключилася до Вашої WiFi мережі, введіть у файлі data/cofig.json у поля "ssid": та "password":
+  ім'я та пароль Вашої WiFi мережі відповідно. Поле "ESP_mode": змініть з 0 на 1. Збережіть файл на те саме місце та зробіть upload файлової системи. Лампа одразу підключиться до Вашої мережі.
   Інші налаштування можна зробити зі сторінки лампи.
 
-  На YouTube каналі «SlingMasterJSC» https://www.youtube.com/user/SlingMasterJSC 
+  На YouTube каналі «SlingMasterJSC» https://www.youtube.com/user/SlingMasterJSC
   є підбірка відео, про конструкцію лампи та програмне забезпечення два плейлісти Wifi Lamp «Javelin» та Arduino Project які я рекомендую переглянути
   ========================================================================================== */
 
@@ -169,7 +169,7 @@ File fsUploadFile;  // Для файловой системы
 uint8_t global_br;
 bool gb;
 uint16_t localPort = ESP_UDP_PORT;
-char packetBuffer[MAX_UDP_BUFFER_SIZE];                     // buffer to hold incoming packet
+char packetBuffer[MAX_FRAME_BUFER + 1];
 char inputBuffer[MAX_UDP_BUFFER_SIZE];
 static const uint8_t maxDim = max(WIDTH, HEIGHT);
 static int8_t progress = 0;
@@ -182,6 +182,7 @@ uint8_t dawnMode;
 bool dawnFlag = false;
 uint32_t thisTime;
 bool manualOff = false;
+bool extCtrl = false;
 
 uint8_t FPSdelay = DYNAMIC;
 uint8_t currentMode = 0;
@@ -585,72 +586,76 @@ void loop() {
   if (connect || !espMode)  {
     my_timer = millis();
   } do {
-    //delay (10);                                                   // Для одной из плат(NodeMCU v3 без металлического экрана над ESP и Flash памятью) пришлось ставить задержку. Остальные работали нормально.
-    if ((connect || !espMode) && ((millis() - my_timer) >= 10UL)) { // Пришлось уменьшить частоту обращений к обработчику запросов web страницы, чтобы не использовать delay (10);.
-      HTTP.handleClient(); // Обработка запросов web страницы.
-      my_timer = millis();
-    }
-
     parseUDP();
 
-    effectsTick();
-    EepromManager::HandleEepromTick(&settChanged, &eepromTimeout, &ONflag,
-                                    &currentMode, modes, &(FavoritesManager::SaveFavoritesToEeprom));
-    // yield();
+    if (!extCtrl) {                                                   // відключаємо виконня всіх процесів які не потрібні при виводі на матрицю зі сторонньої програми
+
+      //delay (10);                                                   // Для одной из плат(NodeMCU v3 без металлического экрана над ESP и Flash памятью) пришлось ставить задержку. Остальные работали нормально.
+      if ((connect || !espMode) && ((millis() - my_timer) >= 10UL)) { // Пришлось уменьшить частоту обращений к обработчику запросов web страницы, чтобы не использовать delay (10);.
+        HTTP.handleClient();                                          // Обработка запросов web страницы.
+        my_timer = millis();
+      }
+
+      // ----------------------
+      effectsTick();
+      // ----------------------
+      EepromManager::HandleEepromTick(&settChanged, &eepromTimeout, &ONflag,
+                                      &currentMode, modes, &(FavoritesManager::SaveFavoritesToEeprom));
+      // yield();
 #if defined(USE_NTP) || defined(USE_MANUAL_TIME_SETTING) || defined(GET_TIME_FROM_PHONE)
-    //if (millis() > 30 * 1000U) можно попытаться оттянуть срок первой попытки синхронизации времени на 30 секунд, чтобы роутер успел не только загрузиться, но и соединиться с интернетом
-    timeTick();
+      //if (millis() > 30 * 1000U) можно попытаться оттянуть срок первой попытки синхронизации времени на 30 секунд, чтобы роутер успел не только загрузиться, но и соединиться с интернетом
+      timeTick();
 #endif
 
 #ifdef ESP_USE_BUTTON
-    buttonTick();
+      buttonTick();
 #endif
 
 #ifdef JAVELIN
-    buttonJavelinTick();
+      buttonJavelinTick();
 #endif
-    if ((millis() - auto_swap_timer) >= eff_interval * 1000UL) { // отображение эффектов в циклле
-      auto_swap_timer = millis();
-      autoSwapEff();
-    }
+      if ((millis() - auto_swap_timer) >= eff_interval * 1000UL) { // отображение эффектов в циклле
+        auto_swap_timer = millis();
+        autoSwapEff();
+      }
 
 #ifdef OTA
-    otaManager.HandleOtaUpdate();                             // ожидание и обработка команды на обновление прошивки по воздуху
+      otaManager.HandleOtaUpdate();                             // ожидание и обработка команды на обновление прошивки по воздуху
 #endif
 
-    TimerManager::HandleTimer(&ONflag, &settChanged,          // обработка событий таймера отключения лампы
-                              &eepromTimeout, &changePower);
+      TimerManager::HandleTimer(&ONflag, &settChanged,          // обработка событий таймера отключения лампы
+                                &eepromTimeout, &changePower);
 
-    if (FavoritesManager::HandleFavorites(                    // обработка режима избранных эффектов
-          &ONflag,
-          &currentMode,
-          &loadingFlag
+      if (FavoritesManager::HandleFavorites(                    // обработка режима избранных эффектов
+            &ONflag,
+            &currentMode,
+            &loadingFlag
 #if defined(USE_NTP) || defined(USE_MANUAL_TIME_SETTING) || defined(GET_TIME_FROM_PHONE)
-          , &dawnFlag
+            , &dawnFlag
 #endif
 #ifdef RANDOM_SETTINGS_IN_CYCLE_MODE
-          , &random_on
-          , &selectedSettings
-          , setFPS
+            , &random_on
+            , &selectedSettings
+            , setFPS
 #endif
-        )) {
-      FastLED.setBrightness(modes[currentMode].Brightness);
-    }
+          )) {
+        FastLED.setBrightness(modes[currentMode].Brightness);
+      }
 
 #if USE_MQTT
-    if (espMode == 1U && mqttClient && WiFi.isConnected() && !mqttClient->connected()) {
-      MqttManager::mqttConnect();                             // библиотека не умеет восстанавливать соединение в случае потери подключения к MQTT брокеру, нужно управлять этим явно
-      MqttManager::needToPublish = true;
-    }
-
-    if (MqttManager::needToPublish) {
-      if (strlen(inputBuffer) > 0) {                          // проверка входящего MQTT сообщения; если оно не пустое - выполнение команды из него и формирование MQTT ответа
-        commandDecode (inputBuffer, MqttManager::mqttBuffer, true);
+      if (espMode == 1U && mqttClient && WiFi.isConnected() && !mqttClient->connected()) {
+        MqttManager::mqttConnect();                             // библиотека не умеет восстанавливать соединение в случае потери подключения к MQTT брокеру, нужно управлять этим явно
+        MqttManager::needToPublish = true;
       }
-      MqttManager::publishState();
-    }
-#endif
 
+      if (MqttManager::needToPublish) {
+        if (strlen(inputBuffer) > 0) {                          // проверка входящего MQTT сообщения; если оно не пустое - выполнение команды из него и формирование MQTT ответа
+          commandDecode (inputBuffer, MqttManager::mqttBuffer, true);
+        }
+        MqttManager::publishState();
+      }
+#endif
+    }
 #if defined(GENERAL_DEBUG) && GENERAL_DEBUG_TELNET
     handleTelnetClient();
 #endif
