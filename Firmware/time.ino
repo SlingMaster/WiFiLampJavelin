@@ -76,8 +76,14 @@ void timeTick() {
       if (thisDay == 1) thisDay = 8;                                      // в библиотеке Time воскресенье - это 1; приводим к диапазону [0..6], где воскресенье - это 6
       thisDay -= 2;
       thisTime = hour(currentLocalTime) * 60 + minute(currentLocalTime);
+
       uint32_t thisFullTime = hour(currentLocalTime) * 3600 + minute(currentLocalTime) * 60 + second(currentLocalTime);
 
+
+      // LOG.println("thisFullTime[ " + String(thisFullTime) + " ] | Time: " + String(thisTime) + " | " + String(notifications) );
+      if (thisFullTime <= 5 ) {
+        CompareVersion();
+      }
       // printTime(thisTime, false, ONflag);                                 // проверка текущего времени и его вывод (если заказан и если текущее время соответстует заказанному расписанию вывода)
 
       // проверка рассвета

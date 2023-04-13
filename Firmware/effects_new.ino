@@ -3044,12 +3044,12 @@ void CreativeWatch() {
   time_t currentLocalTime;
   uint8_t sec;
   // ---------------------
-  
+
   if (loadingFlag) {
 #if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
     if (selectedSettings) {
       // scale | speed
-      setModeSettings(random8(1U, 210U), 50U);
+      setModeSettings(random8(1U, 100U), 50U);
     }
 #endif
     loadingFlag = false;
@@ -3158,6 +3158,211 @@ void CreativeWatch() {
   step++;
 }
 
+
+// =========== Heat Networks ===========
+//             © SlingMaster
+//            Теплові Мережі
+// =====================================
+void getThermometry() {
+  // https://arduinogetstarted.com/tutorials/arduino-http-request
+  // http://api.thingspeak.com/channels/117345/feeds.json?results=1
+  deltaHue = 255U;
+  if (espMode == 1U) {
+    if (!HTTPclient.connect("api.thingspeak.com", 80)) {
+      Serial.println(F("Connection failed"));
+      deltaHue = 96; // return;
+    }
+    // Serial.println(" • Connected to server");
+    if (deltaHue > 200U) {
+      // Send HTTP request
+      HTTPclient.println(F("GET /channels/117345/feeds.json?results=1 HTTP/1.0"));
+      HTTPclient.println(F("Host: api.thingspeak.com"));
+      HTTPclient.println(F("Connection: close"));
+      if (HTTPclient.println() == 0) {
+        Serial.println(F("Failed to send request"));
+        HTTPclient.stop();
+        hue = 160;
+        deltaHue = 96; // return;
+      }
+    }
+    // Check HTTP status
+    if (deltaHue > 200U) {
+      char status[32] = {0};
+      HTTPclient.readBytesUntil('\r', status, sizeof(status));
+      // It should be "HTTP/1.0 200 OK" or "HTTP/1.1 200 OK"
+      if (strcmp(status + 9, "200 OK") != 0) {
+        Serial.print(F("Unexpected response: "));
+        Serial.println(status);
+        HTTPclient.stop();
+        hue = 170;
+        deltaHue = 96; // return;
+      }
+    }
+
+    // Skip HTTP headers ----
+    if (deltaHue > 200U) {
+      char endOfHeaders[] = "\r\n\r\n";
+      if (!HTTPclient.find(endOfHeaders)) {
+        Serial.println(F("Invalid response"));
+        HTTPclient.stop();
+        deltaHue = 96; // return;
+      }
+    }
+
+    // Allocate the JSON document
+    // Use https://arduinojson.org/v6/assistant to compute the capacity.
+    const size_t capacity = 1024;
+    DynamicJsonDocument doc(capacity);
+
+    if (deltaHue > 200U) {
+      // Parse JSON object ----
+      DeserializationError error = deserializeJson(doc, HTTPclient);
+      if (error) {
+        Serial.print(F("deserializeJson() failed: "));
+        Serial.println(error.f_str());
+        HTTPclient.stop();
+        hue = 0;
+        deltaHue = 96; // return;
+      } else {
+        // Extract values -----
+        String tempStr = doc["feeds"][0]["field1"].as<const char*>();
+        int temp = tempStr.toInt() + 6U;
+        tempStr = doc["feeds"][0]["field4"].as<const char*>();
+        hue2 = tempStr.toInt() > 0U; // fanState
+
+        if (temp > 46U) {
+          hue = 240U;
+        } else {
+          int colorCorrection = (temp < 37) ? -12 : 3;
+          hue = 160U - (temp + colorCorrection) * 3.55;
+        }
+#ifdef GENERAL_DEBUG
+        LOG.printf_P(PSTR("Temperature %d | Color • %03d| Fan • "), temp, hue);
+        Serial.println(hue2);
+#endif
+
+        // Disconnect -------
+        HTTPclient.stop();
+      }
+    }
+  }
+}
+
+// -------------------------------------
+void HeatNetworks() {
+  // ХТМ | KHN
+  const byte PADDING = HEIGHT > 24U ? 4 : 3;
+  const uint8_t BR = 200U;
+  const uint16_t TIMEOUT = 500U;
+  if (loadingFlag) {
+    loadingFlag = false;
+    ff_z = 128;
+    ff_y = 0;
+    if (modes[currentMode].Scale > 3) {
+      // hue2 = (modes[currentMode].Scale % 2U) ? 0 : 1;
+      /* fan demo --- */
+      hue2 = (hue % 2U) ? 0 : 1;
+    } else {
+      getThermometry();
+    }
+    fillAll(CHSV(hue, 255, BR));
+  }
+
+  // fan on/off -------
+  if (hue2) {
+    ff_z = 12;
+  } else {
+    ff_z = 252;
+  }
+
+  // bubbles scroll up ----------
+  for (uint8_t y = HEIGHT; y > 0U; y--) {
+    for (uint8_t x = 0U; x < WIDTH; x++) {
+      deltaHue++;
+      uint32_t curColor = getPixColorXY(x, y - 1U);
+      if (y < HEIGHT - PADDING) {
+        if ((curColor == CHSV(hue, 255, BR)) || (curColor == CHSV(ff_x, 255, BR))) {
+          /* bacground */
+          drawPixelXY(x, y, CHSV(hue, 255, BR));
+        } else {
+          /* bubbles */
+          drawPixelXY(x, y, CHSV(hue, y * 6, 255U));
+        }
+      }
+    }
+    deltaValue++;
+  }
+
+  /* added bubbles ----- */
+  pcnt = random8(WIDTH - 1);
+  // pcnt += random8(2);
+  if (ff_y <= TIMEOUT) {
+    // if (getPixColorXY(pcnt, 1U) != CHSV(hue, 255, BR)) {pcnt++;}
+
+    for (uint8_t x = 0U; x < WIDTH; x++) {
+      drawPixelXY(x, 1U, CHSV(hue, (x == pcnt) ? 0 : 255, (x == pcnt) ? 255 : BR));
+    }
+    DrawLine(0, 0,  WIDTH, 0, CHSV(hue, 255, BR));
+  }
+  /* fan -------------> */
+  if (enlargedObjectNUM > ff_z) {
+    enlargedObjectNUM -= 4;
+  }
+  if (enlargedObjectNUM < ff_z) {
+    enlargedObjectNUM += 4;
+  }
+
+  drawPixelXY(WIDTH - 1, HEIGHT - 1, CHSV(hue, 255, BR));
+
+  if (step % 4U == 0U) {
+    drawPixelXY(WIDTH - 1, HEIGHT - 2, CHSV(hue, enlargedObjectNUM, 255));
+    drawPixelXY(WIDTH - 2, HEIGHT - 3, CHSV(hue, enlargedObjectNUM, 255));
+    if (PADDING == 4U) drawPixelXY(WIDTH - 1, HEIGHT - 4, CHSV(hue, enlargedObjectNUM, 255));
+  } else {
+    drawPixelXY(WIDTH - 1, HEIGHT - 2, CHSV(hue, 252, enlargedObjectNUM));
+    drawPixelXY(WIDTH - 2, HEIGHT - 3, CHSV(hue, 252, enlargedObjectNUM));
+    if (PADDING == 4U) drawPixelXY(WIDTH - 1, HEIGHT - 4, CHSV(hue, 252, enlargedObjectNUM));
+  }
+  /* --- | fan */
+
+  /* <==== scroll ===== */
+
+  for (uint8_t x = 0U ; x < WIDTH; x++) {
+    drawPixelXY(x,  HEIGHT - 1, getPixColorXY(x + 1,  HEIGHT - 1));
+    drawPixelXY(x,  HEIGHT - 2, getPixColorXY(x + 1,  HEIGHT - 2));
+    drawPixelXY(x,  HEIGHT - 3, getPixColorXY(x + 1,  HEIGHT - 3));
+    if (PADDING == 4U) drawPixelXY(x,  HEIGHT - 4, getPixColorXY(x + 1,  HEIGHT - 4));
+  }
+
+  if (modes[currentMode].Scale < 3) {
+    // standard mode ----
+    if (ff_y == TIMEOUT) {
+      /* temporary stop of the fan */
+      hue2 = 0;
+    }
+    if (ff_y > TIMEOUT + 50U) {
+      getThermometry();
+      DrawLine(0, 0,  WIDTH, 0, CHSV(hue, 255, BR));
+      ff_y = 0U;
+    }
+  } else {
+    // demo mode --------
+    if (modes[currentMode].Scale > 95) {
+      EVERY_N_SECONDS(10) {
+        ff_y = 0;
+        hue += 7;
+      }
+    } else {
+      hue = modes[currentMode].Scale * 2.55;
+    }
+  }
+  ff_y++;
+  if (ff_y % HEIGHT == 0U) {
+    ff_x = hue;
+  }
+  step++;
+  // LOG.printf_P(PSTR("Step • %03d | Color • %03d | lastColor • %03d | Timer • %06d\n\r"), step, hue, ff_x, ff_y);
+}
 
 // ==============
 // END ==============

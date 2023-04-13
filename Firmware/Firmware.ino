@@ -162,7 +162,7 @@ SendCurrentDelegate MqttManager::sendCurrentDelegate = NULL;
 ESP8266HTTPUpdateServer httpUpdater;  // Объект для обнавления с web страницы
 ESP8266WebServer HTTP (ESP_HTTP_PORT);//ESP8266WebServer HTTP;  // Web интерфейс для устройства
 File fsUploadFile;  // Для файловой системы
-
+WiFiClient HTTPclient;
 
 
 // --- ИНИЦИАЛИЗАЦИЯ ПЕРЕМЕННЫХ -------
@@ -215,6 +215,8 @@ uint8_t eff_interval = DEFAULT_FAVORITES_INTERVAL;
 uint8_t eff_valid = 0;
 uint8_t eff_rnd = 0;
 bool lendLease = false;
+
+bool notifications = true;
 
 #ifdef PROPERTIES_LEVEL_INDICATOR
 uint8_t properties_level = 0;
@@ -296,6 +298,7 @@ void setup() {
   PRINT_TIME = jsonReadtoInt(configSetup, "print_time");
   custom_eff = jsonReadtoInt(configSetup, "custom_eff");
   camouflage = jsonReadtoInt(configSetup, "camouflage");
+  notifications = jsonReadtoInt(configSetup, "notifications");
   gb = (jsonReadtoInt(configSetup, "gb") == 1);
   global_br = jsonReadtoInt(configSetup, "global_br");
 
@@ -580,6 +583,7 @@ void loop() {
       FastLED.delay(2);
 #endif SHOW_IP_TO_START
       delay (100);
+      CompareVersion();
     }
   }
 

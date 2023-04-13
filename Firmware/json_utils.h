@@ -9,35 +9,36 @@
 
 // ------------- Чтение значения json String
 String jsonRead(String &json, String name) {
-  DynamicJsonBuffer jsonBuffer;
-  JsonObject& root = jsonBuffer.parseObject(json);
-  return root[name].as<String>();
+  DynamicJsonDocument doc(1024);
+  deserializeJson(doc, json);
+  return doc[name].as<String>();
 }
 
 // ------------- Чтение значения json int
 int jsonReadtoInt(String &json, String name) {
-  DynamicJsonBuffer jsonBuffer;
-  JsonObject& root = jsonBuffer.parseObject(json);
-  return root[name];
+  DynamicJsonDocument doc(1024);
+  deserializeJson(doc, json);
+  return doc[name];
 }
 
 // ------------- Запись значения json String
 String jsonWrite(String &json, String name, String volume) {
-  DynamicJsonBuffer jsonBuffer;
-  JsonObject& root = jsonBuffer.parseObject(json);
-  root[name] = volume;
+  DynamicJsonDocument doc(1024);
+  deserializeJson(doc, json);
+  doc[name] = volume;
   json = "";
-  root.printTo(json);
+  serializeJson(doc, json);
   return json;
 }
 
 // ------------- Запись значения json int
 String jsonWrite(String &json, String name, int volume) {
-  DynamicJsonBuffer jsonBuffer;
-  JsonObject& root = jsonBuffer.parseObject(json);
-  root[name] = volume;
+  DynamicJsonDocument doc(1024);
+  deserializeJson(doc, json);
+
+  doc[name] = volume;
   json = "";
-  root.printTo(json);
+  serializeJson(doc, json);
   return json;
 }
 

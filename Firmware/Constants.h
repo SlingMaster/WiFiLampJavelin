@@ -232,6 +232,7 @@ static const uint8_t defaultSettings[][4] PROGMEM = {
   {  12, 215,  15,    DYNAMIC}, // Смак Меду          |  {"n":"Смак Меду","v":[128,255,1,100,1]}, A Taste of Honey
   {  10, 160,  50,    DYNAMIC}, // Райдужний Торнадо  |  {"n":"Райдужний Торнадо","v":[1,254,1,100,0]}, Rainbow Tornado
   {  10, 128,  30, SOFT_DELAY}, // Креативний Годинник|  {"n":"Креативний Годинник","v":[128,128,1,100,1]}, Creative Watch
+  {  12, 200,   0,    DYNAMIC}, // Теплові Мережі     |  {"n":"Теплові Мережі","v":[128,255,1,100,1]}, Heat Networks
 
   // !!! последние эффекты имеют постоянную прописку
   // никогда не перемещайте их по списку, остальные эффекты
@@ -350,4 +351,4 @@ uint8_t DAWN_TIMEOUT;                                       // сколько р
 #define CMD_EFF_JAVELIN       (99U)
 #define CMD_DISCOVER          (50U)
 // -------------------------------------
-String VERSION = "5.1 " + String(MODE_AMOUNT);
+String VERSION = "5.2 " + String(MODE_AMOUNT);

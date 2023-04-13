@@ -64,14 +64,7 @@ void parseUDP() {
           // send matrix size -------
           extCtrl = true;
           sprintf_P(reply, PSTR("INIT,%u,%u"), WIDTH, HEIGHT);
-
-          if (gb) {
-            FastLED.setBrightness(global_br);
-            blurScreen(15U);
-          } else {
-            // FastLED.setBrightness(DAY_HOURS_BRIGHTNESS);
-            FastLED.setBrightness(NIGHT_HOURS_BRIGHTNESS);
-          }
+          FastLED.setBrightness(20U);
         }
         if (x == TRANSFER_END) {
           // response end -----------

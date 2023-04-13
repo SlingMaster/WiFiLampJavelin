@@ -237,3 +237,86 @@ CRGB rgb332ToCRGB(byte value) { // Tnx to Stepko
   color.b |= color.b << 4; // extend 0-15 range to 0-255
   return color;
 }
+
+
+// =====================================
+void CompareVersion() {
+  if (notifications) {
+    // https://arduinogetstarted.com/tutorials/arduino-http-request
+    if (!HTTPclient.connect("winecard.ltd.ua", 80)) {
+#ifdef GENERAL_DEBUG
+      Serial.println(F("Connection failed"));
+#endif
+      return;
+    }
+    Serial.println(" • Connected to server");
+
+    // Send HTTP request
+    HTTPclient.println(F("GET /dev/WifiLampRemote3/version.json HTTP/1.0"));
+    HTTPclient.println(F("Host: winecard.ltd.ua"));
+    HTTPclient.println(F("Connection: close"));
+    if (HTTPclient.println() == 0) {
+#ifdef GENERAL_DEBUG
+      Serial.println(F("Failed to send request"));
+#endif
+      HTTPclient.stop();
+      return;
+    }
+
+    // Check HTTP status
+    if (deltaHue > 200U) {
+      char status[32] = {0};
+      HTTPclient.readBytesUntil('\r', status, sizeof(status));
+      // It should be "HTTP/1.0 200 OK" or "HTTP/1.1 200 OK"
+      if (strcmp(status + 9, "200 OK") != 0) {
+#ifdef GENERAL_DEBUG
+        Serial.print(F("Unexpected response: "));
+        Serial.println(status);
+#endif
+        HTTPclient.stop();
+        return;
+      }
+    }
+
+    // Skip HTTP headers ----
+    char endOfHeaders[] = "\r\n\r\n";
+    if (!HTTPclient.find(endOfHeaders)) {
+#ifdef GENERAL_DEBUG
+      Serial.println(F("Invalid response"));
+#endif
+      HTTPclient.stop();
+      return;
+    }
+
+    // Allocate the JSON document
+    // Use https://arduinojson.org/v6/assistant to compute the capacity.
+    const size_t capacity = 256;
+    DynamicJsonDocument doc(capacity);
+
+    // Parse JSON object ----
+    DeserializationError error = deserializeJson(doc, HTTPclient);
+    if (error) {
+#ifdef GENERAL_DEBUG
+      Serial.print(F("deserializeJson() failed: "));
+      Serial.println(error.f_str());
+#endif
+      HTTPclient.stop();
+      return;
+    }
+
+    // Extract values -----
+    String latestVer = doc["ver"].as<const char*>();
+    if (latestVer > VERSION) {
+      currentMode = MODE_AMOUNT - 1;
+      printMSG("New Firmware Released " + latestVer, false);
+    }
+#ifdef GENERAL_DEBUG
+    LOG.print("New Firmware Released • ");
+    LOG.print(latestVer);
+    LOG.print(" | Current • ");
+    LOG.println(VERSION);
+#endif
+    // Disconnect -------
+    HTTPclient.stop();
+  }
+}
