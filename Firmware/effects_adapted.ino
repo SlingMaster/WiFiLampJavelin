@@ -489,6 +489,132 @@ void Mirage() {
   }
 }
 
+// =====================================
+//     Multicolored Dandelions
+//      Base Code © Less Lam
+//          © SlingMaster
+//       Різнобарвні Kульбаби
+// https://editor.soulmatelights.com/gallery/2007-amber-rain
+// =====================================
+class Circle {
+  public:
+    float thickness = 3.0;
+    long startTime;
+    uint16_t offset;
+    int16_t centerX;
+    int16_t centerY;
+    int hue;
+    int bpm = 10;
+
+    void move() {
+      centerX = random(0, WIDTH);
+      centerY = random(0, HEIGHT);
+    }
+
+    void scroll() {
+      centerX--; // = random(0, WIDTH);
+      if (centerX < 1) {
+        centerX = WIDTH - 1;
+      }
+      centerY++;
+      if (centerY > HEIGHT) {
+        centerY = 0;
+      }
+    }
+    void reset() {
+      startTime = millis();
+      centerX = random(0, WIDTH);
+      centerY = random(0, HEIGHT);
+      hue = random(0, 255);
+      offset = random(0, 60000 / bpm);
+    }
+
+    float radius() {
+      float radius = beatsin16(modes[currentMode].Speed / 2.5, 0, 500, offset) / 100.0;
+      return radius;
+    }
+};
+
+// -----------------------------------
+namespace Circles {
+#define NUMBER_OF_CIRCLES WIDTH/2
+Circle circles[NUMBER_OF_CIRCLES] = {};
+
+void drawCircle(Circle circle) {
+  int16_t centerX = circle.centerX;
+  int16_t centerY = circle.centerY;
+  int hue = circle.hue;
+  float radius = circle.radius();
+
+  int16_t startX = centerX - ceil(radius);
+  int16_t endX = centerX + ceil(radius);
+  int16_t startY = centerY - ceil(radius);
+  int16_t endY = centerY + ceil(radius);
+
+  for (int16_t x = startX; x < endX; x++) {
+    for (int16_t y = startY; y < endY; y++) {
+      int16_t index = XY(x, y);
+      if (index < 0 || index > NUM_LEDS)
+        continue;
+      double distance = sqrt(sq(x - centerX) + sq(y - centerY));
+      if (distance > radius)
+        continue;
+
+      uint16_t brightness;
+      if (radius < 1) { // last pixel
+        // brightness = 0; //255.0 * radius;
+        deltaValue = 20;
+        brightness = 180;
+        // brightness = 0;
+      } else {
+        deltaValue = 200; // 155 + modes[currentMode].Scale;
+        double percentage = distance / radius;
+        double fraction = 1.0 - percentage;
+        brightness = 255.0 * fraction;
+      }
+      leds[index] += CHSV(hue, deltaValue, brightness);
+    }
+  }
+}
+
+// -----------------------------
+void draw(bool setup) {
+  fadeToBlackBy(leds, NUM_LEDS, 100U);
+  // fillAll(CRGB::Black);
+  for (int i = 0; i < NUMBER_OF_CIRCLES; i++) {
+    if (setup) {
+      circles[i].reset();
+    } else {
+      if (circles[i].radius() < 0.5) {
+        circles[i].scroll();
+      }
+    }
+    drawCircle(circles[i]);
+  }
+}
+}; // namespace Circles
+
+// ==============
+void Dandelions() {
+  if (loadingFlag) {
+#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      // scale | speed
+      setModeSettings(random8(1U, 100U), random8(10U, 255U));
+    }
+#endif
+    loadingFlag = false;
+    FastLED.clear();
+    Circles::draw(true);
+    // deltaValue = 150 + modes[currentMode].Scale;
+    deltaValue = 155 + modes[currentMode].Scale;
+  }
+
+  // FPSdelay = SOFT_DELAY;
+  Circles::draw(false);
+}
+
+
 // ==============
 // END ==============
 // ==============

@@ -1337,83 +1337,6 @@ void  Spectrum() {
   }
 }
 
-// ============ Lotus Flower ============
-//             © SlingMaster
-//               EFF_LOTUS
-//             Цветок Лотоса
-//---------------------------------------
-void  Flower() {
-  uint8_t br;
-  if (step < 128) {
-    br = 255 - step;  // 255 >> 128
-  } else {
-    br = step;        // 128 >> 255
-  }
-  if (modes[currentMode].Scale > 10) {
-    dimAll(90);
-    hue = floor(modes[currentMode].Scale * 1.9) + floor(br / 4);
-  } else {
-    FastLED.clear();
-    hue = step;
-  }
-  if (step > 190) {
-    hue2 = validMinMax(hue - 64 + floor(br / 4), 190, 250);
-  } else {
-    hue2 = hue + 64 - floor(br / 4);
-  }
-
-  for (uint8_t x = 0U ; x < WIDTH ; x++) {
-    if (x % 6 == 0) {
-      gradientVertical( x - deltaValue, 2U, x + 1 - deltaValue, HEIGHT * 0.8 - floor((255 - br) / 24) - random8(2), hue, hue2, 255, floor(br * 0.5), 255U);
-      gradientVertical( x + 3U - deltaValue, 0U, x + 4U - deltaValue, HEIGHT * 0.8 - floor(br / 24) + random8(3), hue, hue2, 255, floor((255 - br * 0.5)), 255U);
-      drawPixelXY(x - deltaValue, 0, 0x005F00);
-      if (x % 2 == 0) {
-        drawPixelXY(x - deltaValue, 1, 0x007F00);
-      }
-    }
-  }
-}
-
-//---------------------------------------
-void LotusFlower() {
-  if (loadingFlag) {
-#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
-    if (selectedSettings) {
-      //                     scale | speed
-      setModeSettings(random8(100U), 50U + random8(190U));
-    }
-#endif
-    loadingFlag = false;
-    deltaValue = 0;
-    step = deltaValue;
-    deltaValue = 0;
-    hue = 120;
-    hue2 = 0;
-    deltaHue = 0;
-    deltaHue2 = 0;
-    FastLED.clear();
-  }
-
-  Flower();
-  if (deltaHue == 0) {               // rotation
-    deltaValue--;
-    if (deltaValue <= 0) {
-      deltaValue = 3;
-    }
-  } else {
-    deltaValue++;
-    if (deltaValue >= 3) {
-      deltaValue = 0;
-    }
-  }
-  deltaHue2++;
-  if (deltaHue2 >= 18) {           // swap direction rotate
-    deltaHue2 = 0;
-    deltaHue = (deltaHue == 0) ? 1 : 0;
-  }
-  step++;
-}
-
 // =========== Christmas Tree ===========
 //             © SlingMaster
 //           EFF_CHRISTMAS_TREE
@@ -3340,7 +3263,7 @@ void HeatNetworks() {
       /* temporary stop of the fan */
       hue2 = 0;
     }
-    if (ff_y > TIMEOUT + 50U) {
+    if (ff_y > TIMEOUT + 65U) {
       getThermometry();
       DrawLine(0, 0,  WIDTH, 0, CHSV(hue, 255, BR));
       ff_y = 0U;
@@ -3362,6 +3285,150 @@ void HeatNetworks() {
   }
   step++;
   // LOG.printf_P(PSTR("Step • %03d | Color • %03d | lastColor • %03d | Timer • %06d\n\r"), step, hue, ff_x, ff_y);
+}
+
+
+// ============== Spindle ==============
+//             © SlingMaster
+//                Веретено
+// =====================================
+void Spindle() {
+  static bool dark;
+  if (loadingFlag) {
+#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      // scale | speed
+      setModeSettings(random8(1U, 100U), random8(100U, 255U));
+    }
+#endif
+    loadingFlag = false;
+    hue = random8(8) * 32; // modes[currentMode].Scale;
+    hue2 = 255U;
+    dark = modes[currentMode].Scale < 50U;
+  }
+
+  if  (modes[currentMode].Scale < 75) {
+    blurScreen(32U);
+  }
+
+  /* <==== scroll ===== */
+  for (uint8_t y = 0U ; y < HEIGHT; y++) {
+    for (uint8_t x = 0U ; x < WIDTH - 1; x++) {
+      hue2--;
+      if (dark) {   // black delimiter -----
+        drawPixelXY(WIDTH - 1, y, CHSV(hue, 255, hue2));
+      } else {      // white delimiter -----
+        drawPixelXY(WIDTH - 1, y, CHSV(hue, 64 + hue2 / 2, 255 - hue2 / 4));
+      }
+      drawPixelXY(x, y,  getPixColorXY(x + 1,  y));
+    }
+  }
+  if (modes[currentMode].Scale < 5) {
+
+    return;
+  }
+  if (modes[currentMode].Scale < 50) {
+    hue += 4;
+  } else {
+    if (modes[currentMode].Scale < 25) {
+      hue += 2;
+    } else {
+      hue += 3;
+    }
+  }
+  // LOG.printf_P(PSTR("Step • %03d | Color • %03d | lastColor • %03d | Timer • %06d\n\r"), step, hue, ff_x, ff_y);
+}
+
+// ============ Lotus Flower ============
+//             © SlingMaster
+//             Квітка Лотоса
+//---------------------------------------
+void drawLotusFlowerFragment(uint8_t posX, byte line) {
+  const uint8_t h = (HEIGHT > 24) ? HEIGHT * 0.9 : HEIGHT;
+  uint8_t flover_color = 128 + abs(128 - hue);                        // 128 -- 255
+  uint8_t gleam = 255 - abs(128 - hue2);                              // 255 -- 128
+  float f_size = (128 - abs(128 - deltaValue)) / 150.0;               // 1.0 -- 0.0
+  const byte lowBri = 112U;
+  // clear -----
+  DrawLine(posX, 0, posX, h * 1.1, CRGB::Black);
+
+  switch (line) {
+    case 0:
+      gradientVertical(posX, 0, posX + 1, h * 0.22, 96, 96, 32, 255, 255U);                             // green leaf c
+      gradientVertical(posX, h * 0.9, posX + 1, h * 1.1, 64, 48, 64, 205, gleam);                       // pestle
+      gradientVertical(posX, 8, posX + 1, h * 0.6, flover_color, flover_color, 128, lowBri, 255U);          // ---
+      break;
+    case 2:
+    case 6:
+      gradientVertical(posX, h * 0.2, posX + 1, h - 4, flover_color, flover_color, lowBri, 255, gleam);     //  -->
+      gradientVertical(posX, h * 0.05, posX + 1, h * 0.15, 96, 96, 32, 255, 255U);                      // green leaf
+      break;
+    case 3:
+    case 5:
+      gradientVertical(posX, h * 0.5, posX + 1, h - 2, flover_color, flover_color, lowBri, 255, 255U);      // ---->
+      break;
+    case 4:
+      gradientVertical(posX, 1 + h * f_size, posX + 1, h, flover_color, flover_color, lowBri, 255, gleam);  // ------>
+      break;
+    default:
+      gradientVertical(posX, h * 0.05, posX + 1, h * 0.2, 80, 96, 160, 64, 255U);                       // green leaf m
+      break;
+  }
+}
+
+//---------------------------------------
+void LotusFlower() {
+  const byte STEP_OBJ = 8;
+  static uint8_t deltaSpeed = 0;
+  if (loadingFlag) {
+#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      //                     scale | speed
+      setModeSettings(random8(100U), random8(1, 255U));
+    }
+#endif //#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    loadingFlag = false;
+    step = 0U;
+    hue2 = 128U;
+    deltaValue = 0;
+    hue = 224;
+    FPSdelay = SpeedFactor(160);
+    FastLED.clear();
+  }
+
+  if (modes[currentMode].Speed > 128U) {
+    if (modes[currentMode].Scale > 50) {
+      deltaSpeed = 80U + (128U - abs(128U - deltaValue)) / 1.25;
+      FPSdelay = SpeedFactor(deltaSpeed);
+      if (step % 256 == 0U ) hue += 32;           /* color morph */
+    } else {
+      FPSdelay = SpeedFactor(160);
+      hue = 28U;
+    }
+    deltaValue++;     /* size morph  */
+    /* <==== scroll ===== */
+    drawLotusFlowerFragment(WIDTH - 1, (step % STEP_OBJ));
+    for (uint8_t y = 0U ; y < HEIGHT; y++) {
+      for (uint8_t x = 0U ; x < WIDTH; x++) {
+        drawPixelXY(x - 1, y,  getPixColorXY(x,  y));
+      }
+    }
+  } else {
+    /* <==== morph ===== */
+    for (uint8_t x = 0U ; x < WIDTH; x++) {
+      drawLotusFlowerFragment(x, (x % STEP_OBJ));
+      if (x % 2U) {
+        hue2++;         /* gleam morph */
+      }
+    }
+    deltaValue++;       /* size morph  */
+    if (modes[currentMode].Scale > 50) {
+      hue += 8; /* color morph */
+    } else {
+      hue = 28U;
+    }
+  }
+  step++;
 }
 
 // ==============
