@@ -235,6 +235,9 @@ static const uint8_t defaultSettings[][4] PROGMEM = {
   {  12, 200,   0,    DYNAMIC}, // Теплові Мережі     |  {"n":"Теплові Мережі","v":[128,255,1,100,1]}, Heat Networks
   {  16, 215,  35,    DYNAMIC}, // Веретено           |  {"n":"Веретено","v":[128,255,1,100,0]}, Spindle
   {  18,  50,  90, SOFT_DELAY}, // Різнобарвні Kульбаби   |  {"n":"Різнобарвні Kульбаби","v":[10,255,1,100,0]}, Multicolored Dandelions
+  {  16, 215,  35,    DYNAMIC}, // Цифрова Турбулентність |  {"n":"Цифрова Турбулентність","v":[1,255,1,100,0]}, Digital Тurbulence
+  {   9, 128,  25,  LOW_DELAY}, // Пітон              |  {"n":"Пітон","v":[127,128,1,100,0]}, Python
+
 
   // !!! последние эффекты имеют постоянную прописку
   // никогда не перемещайте их по списку, остальные эффекты
@@ -353,4 +356,4 @@ uint8_t DAWN_TIMEOUT;                                       // сколько р
 #define CMD_EFF_JAVELIN       (99U)
 #define CMD_DISCOVER          (50U)
 // -------------------------------------
-String VERSION = "5.3 " + String(MODE_AMOUNT);
+String VERSION = "5.4 " + String(MODE_AMOUNT);

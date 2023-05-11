@@ -3431,6 +3431,143 @@ void LotusFlower() {
   step++;
 }
 
+// ======== Digital Тurbulence =========
+//             © SlingMaster
+//        Цифрова Турбулентність
+// =====================================
+void drawRandomCol(uint8_t x, uint8_t y, uint8_t offset, uint32_t count) {
+  const byte STEP = 32;
+  const byte D = HEIGHT / 8;
+  uint8_t color = floor(y / D) * STEP + offset;
+
+  if (count == 0U) {
+    drawPixelXY(x, y, CHSV(color, 255, random8(8U) == 0U ? (step % 2U ? 0 : 255) : 0));
+  } else {
+    drawPixelXY(x, y, CHSV(color, 255, (bitRead(count, y ) == 1U) ? (step % 5U ? 0 : 255) : 0));
+  }
+}
+
+//---------------------------------------
+void Turbulence() {
+  const byte STEP_COLOR = 255 / HEIGHT;
+  const byte STEP_OBJ = 8;
+  const byte DEPTH = 2;
+  static uint32_t count; // 16777216; = 65536
+  uint32_t curColor;
+  if (loadingFlag) {
+#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      //                     scale | speed
+      setModeSettings(random8(100U), random8(1, 255U));
+    }
+#endif //#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    loadingFlag = false;
+    step = 0U;
+    deltaValue = 0;
+    hue = 0;
+    if (modes[currentMode].Speed < 20U) {
+      FPSdelay = SpeedFactor(30);
+    }
+    FastLED.clear();
+  }
+
+  deltaValue++;     /* size morph  */
+
+  /* <==== scroll =====> */
+  for (uint8_t y = HEIGHT; y > 0; y--) {
+    drawRandomCol(0, y - 1, hue, count);
+    drawRandomCol(WIDTH - 1, y - 1, hue + 128U, count);
+
+    // left -----
+    for (uint8_t x = CENTER_X_MAJOR - 1; x > 0; x--) {
+      if (x > CENTER_X_MAJOR) {
+        if (random8(2) == 0U) { /* scroll up */
+          CRGB newColor = getPixColorXY(x, y - 1 );
+        }
+      }
+
+      /* ---> */
+      curColor = getPixColorXY(x - 1, y - 1);
+      if (x < CENTER_X_MAJOR - DEPTH / 2) {
+        drawPixelXY(x, y - 1, curColor);
+      } else {
+        if (curColor != 0U) drawPixelXY(x, y - 1, curColor);
+      }
+    }
+
+    // right -----
+    for (uint8_t x = CENTER_X_MAJOR + 1; x < WIDTH; x++) {
+      if (x < CENTER_X_MAJOR + DEPTH ) {
+        if (random8(2) == 0U)  {  /* scroll up */
+          CRGB newColor = getPixColorXY(x, y - 1 );
+        }
+      }
+      /* <---  */
+      curColor = getPixColorXY(x, y - 1);
+      if (x > CENTER_X_MAJOR + DEPTH / 2 ) {
+        drawPixelXY(x - 1, y - 1, curColor);
+      } else {
+        if (curColor != 0U) drawPixelXY(x - 1, y - 1, curColor);
+      }
+    }
+
+    /* scroll center up ---- */
+    for (uint8_t x = CENTER_X_MAJOR - DEPTH; x < CENTER_X_MAJOR + DEPTH; x++) {
+      drawPixelXY(x, y,  makeDarker(getPixColorXY(x, y - 1 ), 128 / y));
+      if (y == 1) {
+        drawPixelXY(x, 0, CRGB::Black);
+      }
+    }
+    /* --------------------- */
+  }
+
+  if (modes[currentMode].Scale > 50) {
+    count++;
+    if (count % 256 == 0U) hue += 16U;
+  } else {
+    count = 0;
+  }
+  step++;
+}
+
+// ============== Python ===============
+//          base code © Stepko
+//             © SlingMaster
+//                Пітон
+// =====================================
+void Python() {
+  static CRGBPalette16 currentPalette;
+  if (loadingFlag) {
+#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      //                     scale | speed
+      setModeSettings(random8(1, 100U), 128U);
+    }
+#endif //#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    loadingFlag = false;
+    deltaValue = 0;
+
+    if (modes[currentMode].Scale < 50U) {
+      currentPalette = CopperFireColors_p;
+    } else {
+      currentPalette = HeatColors_p;
+    }
+  }
+
+  float t = ( millis() - deltaValue) / 200.;
+  for (int8_t y = 0; y < HEIGHT; y++) {
+    for (int8_t x  = 0; x < WIDTH; x++) {
+      leds[XY(x, y)] = ColorFromPalette(currentPalette, ((sin8((x * 16) + sin8(y * 5 - t * 5.)) + cos8(y / 2 * 10)) + 1) + t);
+    }
+  }
+
+  if (deltaValue > HEIGHT * 2) {
+    deltaValue = 0;
+  }
+  deltaValue++;
+}
+
+
 // ==============
 // END ==============
 // ==============
