@@ -1,0 +1,99 @@
+﻿<!DOCTYPE HTML>
+<html lang="en-US-x-Hixie">
+
+<head>
+  <title>Wifi Lamp Color Music</title>
+  <link rel="shortcut icon" type="image/x-icon" href="img/favicon.ico">
+  <link rel="apple-touch-icon-precomposed" href="img/ic_ios.png" />
+  <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <!-- Run in full-screen mode. -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <!-- Make the status bar black with white text. -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <!-- Disable phone number detection. -->
+  <meta name="format-detection" content="telephone=no" />
+  <!-- Set viewport. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <style>
+    html,
+    body {
+      background: black;
+    }
+  </style>
+  <link rel="stylesheet" href="fonts/stylesheet.css" type="text/css" charset="utf-8" />
+  <link rel="stylesheet" href="css/assets.min.css" type="text/css" charset="utf-8" />
+  <script type="text/javascript" src="libs/jquery-2.1.4.min.js"></script>
+  <script type="text/javascript" src="js/script.min.js"></script>
+</head>
+
+<body>
+  <div id="win" class="content">
+    <div class="panels">
+      <!--  top panel -->
+      <div id="deck" class="deck">
+        <div id="cassette" class="deck_cassette">
+          <div id="bobbin_l" class="bobbin_high_speed"></div>
+          <div id="bobbin_r" class="bobbin"></div>
+        </div>
+        <div id="cover" class="deck_cover">
+          <div id="deck_light" class="deck_light"></div>
+          <div class="title_deck mod">model RS-D030<span id="of_song">00 • 00</span></div>
+          <div class="progess_box">
+            <div id="progress" class="progress"></div>
+          </div>
+          <div class="name_deck">STEREO CASSETTE DECK<span>• Jeneral Samopal Company •</span></div>
+        </div>
+
+
+        <div id="buttons" class="btn_container" onclick="clickButton(event);">
+          <button id="back" class="button btn_mp sym_rewind"></button>
+          <button id="stop" class="button btn_mp sym_stop"></button>
+          <button id="play" class="button btn_mp sym_play"></button>
+          <button id="forward" class="button sym_fastfwd btn_mp"></button>
+          <button id="eject" class="button btn_mp sym_eject"></button>
+        </div>
+      </div>
+      <div class="volume_container">
+        <div class="display_container">
+          <div class="title_deck"><span id="ln_ico" class="ico sym_ln"></span>• waveform audio •<span id="mute_ico"
+              class="ico sym_mute"></span></div>
+          <div class="vaweform">
+            <div class="box_short">
+              <span class="btn_box">ln • i</span>
+              <button id="ln" class="button check_dev" onclick="clickButton(event);"></button>
+            </div>
+            <div class="box"></div>
+            <div class="box_short">
+              <span class="btn_box">mute</span>
+              <button id="mute" class="button check_dev" onclick="clickButton(event);"></button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class=" volume_container">
+        <div class="title_deck">• volume level •</div>
+
+        <div id="volume_touch" class="volume" onclick="clickVolume(event);">||<span>touch</span>||<span class="dig">25</span>||||||| • <span
+            id="vl" class="volume_level">00</span> • ||||||||<span class="dig">75</span>|||||||||</div>
+
+        <div class="volume_pos">
+          <div id="volume" class="volume_level_cnob"></div>
+        </div>
+      </div>
+
+      <div class="volume_container">
+        <div class="title_deck">• visualisation •</div>
+        <div id="vis_container" class="vis_container"></div>
+      </div>
+      <!-- Debug Panel Json View -->
+      <div class="audio_box">
+        <div id="debug" class="hide"></div>
+        <div id="rst" class="dolby_logo" onclick="clickButton(event);"></div>
+      </div>
+    </div>
+    <input type="text" id="jsondata" class="hide" value="" />
+  </div>
+</body>
+
+</html>
