@@ -16,6 +16,7 @@
    "fav_effect" : 113,
    "night_bright" : 5,
    "night_time" : 22,
+   "notification" : 1,
    "ntp" : "pl.pool.ntp.org",
    "password" : "",
    "passwordAP" : "31415926",

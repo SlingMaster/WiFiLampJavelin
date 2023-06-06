@@ -74,6 +74,8 @@
 
 // === ПРОГРАМНЕ ЗАБЕЗПЕЧЕННЯ ===========
 #define USE_ROUTER_ONLY                                     // не перемикатись в режим Access Point якщо вже було підключення до роутера при старті (актуально якщо довго стартуе роутер)
+#define USE_SOUND_VISUALISER                                // візуалізатор звуку, закоментуйте якщо не використовуєте
+
 // === РЕЖИМЫ РАБОТЫ  ===================
 uint8_t SLEEP_TIMER             (3U);                       // Время автоотключения лампы (час)
 #define USE_MULTIPLE_LAMPS_CONTROL                          // Включить код для управления несколькими лампами (workgroup)
@@ -97,7 +99,7 @@ uint8_t SLEEP_TIMER             (3U);                       // Время авт
 
 
 // === ЗОВНІШНЄ УПРАВЛІННЯ ==============
-#define USE_MQTT              (false)                        // true - используется mqtt клиент, false - нет
+#define USE_MQTT              (false)                       // true - используется mqtt клиент, false - нет
 #if USE_MQTT
 static const char MqttServer[]         PROGMEM = "XXX.XXX.XXX.XXX";             // IP адреса MQTT брокера який ви використовуєте
 static const uint16_t MqttPort                 = 1883U;                         // порт MQTT брокера

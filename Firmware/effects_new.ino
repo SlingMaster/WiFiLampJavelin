@@ -107,7 +107,7 @@ bool isJavelinMode() {
     currentMode = MODE_AMOUNT - 1;
   }
   if (eff_valid == 0) {
-    currentMode = 84;
+    currentMode = 81;
   }
   return !dawnFlag;
 }
@@ -3536,7 +3536,6 @@ void Turbulence() {
 //                Пітон
 // =====================================
 void Python() {
-  static CRGBPalette16 currentPalette;
   if (loadingFlag) {
 #if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
     if (selectedSettings) {
