@@ -6,6 +6,11 @@ void parseUDP() {
   const byte BIT08 = 99U;
   const byte TRANSFER_START = 254U;
   const byte TRANSFER_END = 255U;
+
+  const byte TRANSFER_SOUND_INIT = 125U;
+  const byte TRANSFER_SOUND_PAUSE = 126U;
+  const byte TRANSFER_SOUND_STOP = 127U;
+
   int16_t packetSize = Udp.parsePacket();
   const int16_t MAX_PACKET = HEIGHT * 3U;
   bool generateOutput;
@@ -29,8 +34,58 @@ void parseUDP() {
     // printf("COL • [ %3d ] %3d | %3d |\n", packetBuffer[3], packetBuffer[4], packetBuffer[5]);
 #endif
     char reply[MAX_UDP_BUFFER_SIZE];
-    // external gif animate -------
-    if (!strncmp_P(inputBuffer, PSTR("FRM"), 3)) {
+
+    // SOUND VISUALISER ============
+#ifdef USE_SOUND_VISUALISER
+    String inf = getIoTInfo();
+#endif
+    /* external sound data ------------------ */
+    if (!strncmp_P(inputBuffer, PSTR("SND"), 3)) {
+#ifdef USE_SOUND_VISUALISER
+      byte id_cmd = packetBuffer[3];
+      char jsonData[inf.length() + 1];
+      inf.toCharArray(jsonData, inf.length() + 1);
+#ifdef JAVELIN
+      if (!extCtrl) DrawLevel(0, 35, 35, CHSV {160, 255, 255});
+#endif
+      switch (id_cmd) {
+        case TRANSFER_SOUND_INIT:
+          /* init and send info data -------- */
+          extCtrl = true;
+          FastLED.setBrightness(30U);
+          drawNote(CRGB::Blue);
+          FPSdelay = HIGH_DELAY;
+          sprintf_P(reply, PSTR("{\"cmd\":%u,%s}"), CMD_DISCOVER, jsonData);
+          break;
+        case TRANSFER_SOUND_PAUSE:
+          drawNote(CRGB::Magenta);
+          break;
+        case TRANSFER_SOUND_STOP:
+          /* stop analizator ---------------- */
+          sprintf_P(reply, PSTR("{\"cmd\":%u,%s}"), id_cmd, "{}");
+          setFPS();
+          FastLED.clear();
+          FastLED.delay(2);
+          extCtrl = false;
+#ifdef JAVELIN
+          JavelinLight(0x000000, 0x000000, 0x000000);
+          DrawLevel(0, 35, 35, CHSV {0, 255, 0});
+#endif
+          runEffect();
+          break;
+        default:
+          /* sound visualisetion ------------ */
+          extCtrl = true;
+          sprintf_P(reply, PSTR("{\"cmd\":%u,%s}"), 0, "{}");
+          SoundVisualiser(packetBuffer, packetSize, id_cmd);
+          break;
+      }
+#endif
+    }
+    // =============================
+
+    /* external gif animate ------- */
+    else if (!strncmp_P(inputBuffer, PSTR("FRM"), 3)) {
 #ifdef JAVELIN
       if (!extCtrl) DrawLevel(0, 35, 35, CHSV {210, 255, 255});
 #endif
