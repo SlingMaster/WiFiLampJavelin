@@ -53,12 +53,12 @@ void parseUDP() {
           /* init and send info data -------- */
           extCtrl = true;
           FastLED.setBrightness(30U);
-          drawNote(CRGB::Blue);
-          FPSdelay = HIGH_DELAY;
+          drawNote(CRGB::Blue, true);
+          FPSdelay = LOW_DELAY;
           sprintf_P(reply, PSTR("{\"cmd\":%u,%s}"), CMD_DISCOVER, jsonData);
           break;
         case TRANSFER_SOUND_PAUSE:
-          drawNote(CRGB::Magenta);
+          drawNote(CRGB::Magenta, true);
           break;
         case TRANSFER_SOUND_STOP:
           /* stop analizator ---------------- */
