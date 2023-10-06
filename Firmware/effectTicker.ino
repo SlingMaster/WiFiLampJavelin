@@ -155,6 +155,8 @@ void (*FuncEff[MODE_AMOUNT])(void) = {
   Dandelions,                 // Різнобарвні Kульбаби
   Turbulence,                 // Цифрова Турбулентність
   Python,                     // Пітон
+  Popuri,                     // Попурі
+  Serpentine,                 // Серпантин
   /* • самое удобное место для добавления нового эффекта • */
   //  ballRoutine,                // Блуждающий кубик
   /* • ------------------------------------------------- • */
@@ -163,7 +165,7 @@ void (*FuncEff[MODE_AMOUNT])(void) = {
     никогда не перемещайте их по списку, остальные эффекты
     можно размещать в любой последовательности. */
   matrixRoutine,              // Maтpицa ......... (EFF_MATRIX)
-  fireRoutine,                // Oгoнь ........... (EFF_MATRIX + 1)
+  fire,                       // Oгoнь ........... (EFF_MATRIX + 1)
   whiteColorStripeRoutine,    // Бeлый cвeт ...... (MODE_AMOUNT - 2)
   colorRoutine,               // Цвeт
 #ifdef USE_TIME_EFFECT
@@ -177,7 +179,7 @@ void effectsTick() {
   if (isJavelinMode()) {
     if (ONflag && (millis() - effTimer >= FPSdelay)) {
       effTimer = millis();
-      if (extCtrl) {
+      if (extCtrl > 0U) {
         /* extend control by UDP protocol transfer data to led matrix */
         return;
       }

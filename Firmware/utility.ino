@@ -214,7 +214,7 @@ void restoreSettings() {
     if (i % 10U == 0U) {
       LOG.println ("               • [ # ] | BRI | SPD | SCL |" );
     }
-    LOG.printf_P(PSTR("Restore Settings [%03d] | %03d | %03d | %03d | \n"), i, modes[i].Brightness, modes[i].Speed, modes[i].Scale);
+    LOG.printf_P(PSTR("Restore Settings [%03d] | %03d | %03d | %03d | \n\r"), i, modes[i].Brightness, modes[i].Speed, modes[i].Scale);
 #endif
   }
 }

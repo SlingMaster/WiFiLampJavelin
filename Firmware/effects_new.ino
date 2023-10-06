@@ -30,6 +30,7 @@ uint8_t const exp_gamma[256] = {
   222, 225, 227, 229, 232, 234, 236, 239, 241, 244, 246, 249, 251, 253, 254,
   255
 };
+
 /* binImage bufer для бінарних img size вибраний по розміру підгружаємих картинок */
 byte binImage[2336];
 
@@ -1126,7 +1127,7 @@ void FeatherCandleRoutine() {
     } else {
       for (uint8_t x = 0; x < w; x++) {
         uint8_t brightness = img[i];
-        leds[XY(deltaX + x, y + posY)] = CHSV(brightness > 240 ? color : color - 10U , 255U, brightness);
+        drawPixelXY( deltaX + x, y + posY,  CHSV(brightness > 240 ? color : color - 10U , 255U, brightness) );
         i++;
       }
     }
@@ -1135,7 +1136,7 @@ void FeatherCandleRoutine() {
 
     if (y <= posY) {
       if (y % 2 == 0) {
-        gradientVertical(0, 0, WIDTH, 2 + posY, color, color, 48, 112, 10U);
+        gradientVertical(0, 0, WIDTH, 2 + posY, color, color, 48, 96, 10U);
       }
     }
 
@@ -1178,13 +1179,13 @@ void FeatherCandleRoutine() {
     } else {
       // LOG.printf_P(PSTR("[0] = %03d | [1] = %03d | [2] = %03d \n\r"), trackingObjectState[0], trackingObjectState[1], trackingObjectState[2]);
       if (hue < 2) {
-        leds[XY(trackingObjectState[4], posY + 1)] = CHSV(50U, 30U, trackingObjectState[0]);
+        drawPixelXY( trackingObjectState[4], posY + 1, CHSV(50U, 30U, trackingObjectState[0]) );
       }
       if ((hue == 1) || (hue == 2)) {
-        leds[XY(trackingObjectState[4], posY)] = CHSV(50U, 15U, trackingObjectState[1]); // - 10;
+        drawPixelXY(trackingObjectState[4], posY, CHSV(50U, 15U, trackingObjectState[1]) ); // - 10;
       }
       if (hue > 1) {
-        leds[XY(trackingObjectState[4], posY - 1)] = CHSV(50U, 5U, trackingObjectState[2]); // - 20;
+        drawPixelXY( trackingObjectState[4], posY - 1, CHSV(50U, 5U, trackingObjectState[2]) ); // - 20;
       }
     }
   }
@@ -3566,6 +3567,195 @@ void Python() {
   deltaValue++;
 }
 
+
+
+// ============== Popuri ===============
+//             © SlingMaster
+//                Попурі
+// =====================================
+void Popuri() {
+  const byte PADDING = HEIGHT * 0.25;
+  const byte step1 = WIDTH;
+  const double freq = 3000;
+  static int64_t frameCount;
+  static byte index;
+  // ---------------------
+
+  if (loadingFlag) {
+#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      setModeSettings(128, random8(4, 254U));
+    }
+#endif
+    loadingFlag = false;
+    hue = 0;
+    frameCount = 0;
+    currentPalette = LavaColors_p;
+    index = modes[currentMode].Scale / 25;
+
+    // ---------------------
+    clearNoiseArr();
+    if (index < 1) {
+      currentPalette = LavaColors_p;
+      currentPalette[8] = CRGB::DarkRed;
+    } else {
+      if (custom_eff) {
+        currentPalette = PartyColors_p;
+      } else {
+        currentPalette = AlcoholFireColors_p;
+      }
+    }
+    FastLED.clear();
+  }
+
+  // change color --------
+  frameCount++;
+  uint8_t t1 = cos8((42 * frameCount) / 30);
+  uint8_t t2 = cos8((35 * frameCount) / 30);
+  uint8_t t3 = cos8((38 * frameCount) / 30);
+  uint8_t r = 0;
+  uint8_t g = 0;
+  uint8_t b = 0;
+  // ---------------------
+
+  uint16_t ms = millis();
+
+  // float mn = 255.0 / 13.8;
+  float mn = 255.0 / WIDTH; // 27.6;
+
+  if (modes[currentMode].Scale < 50) {
+    fillNoiseLED();
+    memset8(&noise2[1][0][0], 255, (WIDTH + 1) * (HEIGHT + 1));
+  } else {
+    fadeToBlackBy(leds, NUM_LEDS, step1);
+  }
+  // body if big height matrix ---------
+  for (uint16_t y = 0; y < HEIGHT; y++) {
+    for (uint16_t x = 0; x < WIDTH; x++) {
+
+      if ( (y <= PADDING - 1) | (y >=  HEIGHT - PADDING) ) {
+        r = sin8((x - 8) * cos8((y + 20) * 4) / 4);
+        g = cos8((y << 3) + t1 + cos8((t3 >> 2) + (x << 3)));
+        b = cos8((y << 3) + t2 + cos8(t1 + x + (g >> 2)));
+
+        g = exp_gamma[g];
+        b = exp_gamma[b];
+
+        // if (modes[currentMode].Scale < 50) {
+        if (index % 2U == 0) {
+          // green blue magenta --
+          if (b < 20) b = exp_gamma[r];
+          r = (g < 128) ? exp_gamma[b] / 3 : 0;
+        } else {
+          // green blue yellow ---
+          if (g < 20) g = exp_gamma[r];
+          r = (b < 128) ? exp_gamma[g] / 2 : 0;
+        }
+        if ( (y == PADDING - 1) | (y ==  HEIGHT - PADDING) ) {
+          r = 0;
+          g = 0;
+          b = 0;
+        }
+        leds[XY(x, y)] = CRGB(r, g, b);
+      } else {
+        // ---------------------
+        CRGB col;
+        if (modes[currentMode].Scale < 50) {
+          uint8_t n0 = noise2[0][x][y];
+          uint8_t n1 = noise2[0][x + 1][y];
+          uint8_t n2 = noise2[0][x][y + 1];
+          int8_t xl = n0 - n1;
+          int8_t yl = n0 - n2;
+          int16_t xa = (x * 255) + ((xl * ((n0 + n1) << 1)) >> 3);
+          int16_t ya = (y * 255) + ((yl * ((n0 + n2) << 1)) >> 3);
+
+          col = CHSV(hue, 255U, 255U);
+          wu_pixel(xa, ya, &col);
+          // ---------------------
+        } else {
+          uint32_t xx = beatsin16(step1, 0, (HEIGHT - PADDING * 2 - 1) * 256, 0, x * freq);
+          uint32_t yy = x * 256;
+
+          if (hue < 80) {
+            col = CHSV(0, 255U, 255U);
+          } else {
+            col = CHSV(hue, 255U, 255U);
+          }
+          wu_pixel (yy, xx + PADDING * 256, &col);
+        }
+      }
+    }
+    if (modes[currentMode].Scale > 50) {
+      if (step % WIDTH == 0U) hue++;
+    }
+  }
+
+  // -----------------
+  step++;
+}
+
+// ============ Serpentine =============
+//             © SlingMaster
+//              Серпантин
+// =====================================
+void Serpentine() {
+  const byte PADDING = HEIGHT * 0.25;
+  const byte BR_INTERWAL = 64 / HEIGHT;
+  const byte DELTA = WIDTH  * 0.25;
+  // ---------------------
+
+  if (loadingFlag) {
+#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      setModeSettings(random8(4, 50), random8(4, 254U));
+    }
+#endif
+    loadingFlag = false;
+    deltaValue = 0;
+    hue = 0;
+    FastLED.clear();
+  }
+  // ---------------------
+
+  byte step1 = map8(modes[currentMode].Speed, 10U, 60U);
+  uint16_t ms = millis();
+  double freq = 3000;
+  float mn = 255.0 / 13.8;
+  byte fade = 180 - abs(128 - step);
+  fadeToBlackBy(leds, NUM_LEDS, fade);
+
+  // -----------------
+  for (uint16_t y = 0; y < HEIGHT; y++) {
+    uint32_t yy = y * 256;
+    uint32_t x1 = beatsin16(step1, WIDTH, (HEIGHT - 1) * 256, WIDTH, y * freq + 32768) / 2;
+
+    // change color --------
+    // CRGB col1 = CHSV(ms / 29 + y * 255 / (HEIGHT - 1) + 128, 255 - abs(128 - step)/4, qadd8(hue, beatsin8(step1, 60, 255U, 0, y * mn + 128)));
+    // CRGB col3 = CHSV(ms / 29 + y * 255 / (HEIGHT - 1), 255, qadd8(hue, beatsin8(step1, 60, 255U, 0, y * mn + 128)) );
+    CRGB col1 = CHSV(ms / 29 + y * 256 / (HEIGHT - 1) + 128, 255, 255 - (HEIGHT - y) * BR_INTERWAL);
+    CRGB col2 = CHSV(ms / 29 + y * 256 / (HEIGHT - 1), 255, 255 - (HEIGHT - y) * BR_INTERWAL);
+    // CRGB col3 = CHSV(ms / 29 + y * 256 / (HEIGHT - 1) + step, 255, 255 - (HEIGHT - y) * BR_INTERWAL - fade);
+
+    wu_pixel( x1 + hue * DELTA, yy - PADDING * (255 - hue), &col1);
+    wu_pixel( abs((WIDTH - 1) * 256 - (x1 + hue * DELTA)), yy - PADDING * hue, &col2);
+    //    wu_pixel( x1 + hue * DELTA, yy - PADDING * 3 * (255 - hue), &col3);
+  }
+
+  step++;
+  if (step % 64) {
+    if (deltaValue == 0) {
+      hue++;
+      if (hue >= 255) {
+        deltaValue = 1;
+      }
+    } else {
+      hue--;
+      if (hue < 1) {
+        deltaValue = 0;
+      }
+    }
+  }
+}
 
 // ==============
 // END ==============

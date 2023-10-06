@@ -11,9 +11,27 @@ void parseUDP() {
   const byte TRANSFER_SOUND_PAUSE = 126U;
   const byte TRANSFER_SOUND_STOP = 127U;
 
+  const byte CRL_CPU = 1;
+  const byte CRL_SOUND = 2;
+  const byte CRL_GIF = 3;
+
   int16_t packetSize = Udp.parsePacket();
   const int16_t MAX_PACKET = HEIGHT * 3U;
   bool generateOutput;
+
+#ifdef USE_CPU_USAGE
+  /* reset extCtrl if not used */
+  if ((ff_z == 200) & extCtrl == CRL_CPU) {
+    EVERY_N_SECONDS(2) {
+      LOG.printf_P(PSTR("CPU • ff_z %3d | ff_y %3d \n\r"), ff_z, ff_y);
+      if (ff_y < 2) {
+        stopTransfer();
+      }
+      ff_y--;
+    }
+  }
+#endif
+
   if (packetSize) {
     int16_t n = Udp.read(packetBuffer, MAX_FRAME_BUFER);
     packetBuffer[n] = '\0';
@@ -33,8 +51,8 @@ void parseUDP() {
     // LOG.print(F("Inbound UDP packet: "));
     // printf("COL • [ %3d ] %3d | %3d |\n", packetBuffer[3], packetBuffer[4], packetBuffer[5]);
 #endif
-    char reply[MAX_UDP_BUFFER_SIZE];
 
+    char reply[MAX_UDP_BUFFER_SIZE];
     // SOUND VISUALISER ============
 #ifdef USE_SOUND_VISUALISER
     String inf = getIoTInfo();
@@ -46,12 +64,12 @@ void parseUDP() {
       char jsonData[inf.length() + 1];
       inf.toCharArray(jsonData, inf.length() + 1);
 #ifdef JAVELIN
-      if (!extCtrl) DrawLevel(0, 35, 35, CHSV {160, 255, 255});
+      if (extCtrl == CRL_SOUND) DrawLevel(0, 35, 35, CHSV {160, 255, 255});
 #endif
       switch (id_cmd) {
         case TRANSFER_SOUND_INIT:
           /* init and send info data -------- */
-          extCtrl = true;
+          extCtrl = CRL_SOUND;
           FastLED.setBrightness(30U);
           drawNote(CRGB::Blue, true);
           FPSdelay = LOW_DELAY;
@@ -66,7 +84,7 @@ void parseUDP() {
           setFPS();
           FastLED.clear();
           FastLED.delay(2);
-          extCtrl = false;
+          extCtrl = 0U;
 #ifdef JAVELIN
           JavelinLight(0x000000, 0x000000, 0x000000);
           DrawLevel(0, 35, 35, CHSV {0, 255, 0});
@@ -75,22 +93,32 @@ void parseUDP() {
           break;
         default:
           /* sound visualisetion ------------ */
-          extCtrl = true;
+          extCtrl = CRL_SOUND;
           sprintf_P(reply, PSTR("{\"cmd\":%u,%s}"), 0, "{}");
           SoundVisualiser(packetBuffer, packetSize, id_cmd);
           break;
       }
 #endif
     }
-    // =============================
 
+    // =============================
+    /* external cpu usage ------- */
+#ifdef USE_CPU_USAGE
+    else if (!strncmp_P(inputBuffer, PSTR("CPU"), 3)) {
+      if (extCtrl < CRL_SOUND) {
+        extCtrl = CRL_CPU;
+        CPUUsageVisualiser(packetBuffer);
+      }
+    }
+#endif
+    // =============================
     /* external gif animate ------- */
     else if (!strncmp_P(inputBuffer, PSTR("FRM"), 3)) {
 #ifdef JAVELIN
-      if (!extCtrl) DrawLevel(0, 35, 35, CHSV {210, 255, 255});
+      if (extCtrl == CRL_GIF) DrawLevel(0, 35, 35, CHSV {210, 255, 255});
 #endif
 
-      extCtrl = true;
+      extCtrl = CRL_GIF;
       // x command or column --------
       byte x = packetBuffer[3];
       // printf("ID • [ %3d ] \n", x);
@@ -117,7 +145,7 @@ void parseUDP() {
           }*/
         if (x == TRANSFER_START) {
           // send matrix size -------
-          extCtrl = true;
+          extCtrl = CRL_GIF;
           sprintf_P(reply, PSTR("INIT,%u,%u"), WIDTH, HEIGHT);
           FastLED.setBrightness(20U);
         }
@@ -126,7 +154,7 @@ void parseUDP() {
           sprintf_P(reply, PSTR("END,%u,%u"), WIDTH, HEIGHT);
           loadingFlag = true;
           delay(500);
-          extCtrl = false;
+          extCtrl = 0U;
 
 #ifdef JAVELIN
           JavelinLight(0x000000, 0x000000, 0x000000);
@@ -135,7 +163,6 @@ void parseUDP() {
           runEffect();
         }
       }
-
     } else {
       commandDecode (inputBuffer, reply, true);
     }
@@ -285,7 +312,6 @@ String getTypeIoT() {
 
 // ======================================
 String getLampState() {
-
   // ---------------------------
   String json = ",\"lamp_state\":{";
   // power ------ •

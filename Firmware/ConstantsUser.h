@@ -99,6 +99,7 @@ uint8_t SLEEP_TIMER             (3U);                       // Время авт
 
 
 // === ЗОВНІШНЄ УПРАВЛІННЯ ==============
+#define USE_CPU_USAGE
 #define USE_MQTT              (false)                       // true - используется mqtt клиент, false - нет
 #if USE_MQTT
 static const char MqttServer[]         PROGMEM = "XXX.XXX.XXX.XXX";             // IP адреса MQTT брокера який ви використовуєте

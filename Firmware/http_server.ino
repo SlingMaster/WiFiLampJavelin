@@ -286,6 +286,7 @@ String runCommand(byte cmd, uint8_t val, String valStr) {
       saveConfig();
       valStr = "";
       warnDinamicColor(0);
+      initConfigure();
       break;
     case CMD_SAVE_ALARMS :
       // configSetup = valStr;

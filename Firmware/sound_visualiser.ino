@@ -17,7 +17,7 @@ const byte ABSTRACT_2 = 112U;
 const byte ABSTRACT_3 = 113U;
 const byte ABSTRACT_4 = 114U;
 const byte ABSTRACT_DEV = 115U;
-
+const byte ABSTRACT_5 = 117U;
 // ======================================
 String getIoTInfo() {
   // init sound data transfer -----------
@@ -102,6 +102,9 @@ void SoundVisualiser(char *packetBuffer, int16_t packetSize, byte id_cmd) {
       break;
     case ABSTRACT_4:
       visCheerfulFire(id_cmd, packetBuffer);
+      break;
+    case ABSTRACT_5:
+      visDragonBbreath(id_cmd, packetBuffer);
       break;
     case ABSTRACT_DEV:
       visTuningIndicator(id_cmd, packetBuffer);
@@ -441,7 +444,7 @@ void visMagicEye(byte id_cmd, char* packetBuffer) {
    ==================================== */
 void visCheerfulFire(byte id_cmd, char *packetBuffer) {
   if (pcnt >= 30) {
-    shiftUp();
+    shiftUpFlame();
     generateFlameLine(packetBuffer);
     pcnt = 0;
   }
@@ -593,7 +596,53 @@ void visTuningIndicator(byte id_cmd, char* packetBuffer) {
   step++;
 }
 
-// ======================================
+/* ======================================
+   Dragon Bbreath | Дихання дракона
+  ====================================== */
+void visDragonBbreath(byte id_cmd, char *packetBuffer) {
+  // https://github.com/FastLED/FastLED/wiki/Pixel-reference
+  const uint8_t amount = 128;
+
+  for (uint8_t y = HEIGHT - 1U; y > 0U; y--) {
+    for (uint8_t x = 0U; x < WIDTH; x++) {
+      uint8_t newX = (random(0, 4)) ? x : (x + WIDTH + random(0U, 2U) - random(0U, 2U)) % WIDTH;
+      CRGB rgbColor = getPixColorXY(x, y - 1U);
 
 
+      if ((getPixColorXY(x, y - 1U) > 0U) & (y > floor(HEIGHT * 0.75))) {
+        // Convert color to CHSV
+        CHSV hsvColor = rgb2hsv_approximate(rgbColor);
+        // Set saturation to 50%
+        hsvColor.saturation = 100;
+        // Increase the brightness by a certain amount
+        hsvColor.value = qadd8(hsvColor.value, 16);
+        drawPixelXY(newX, y, hsvColor);
+      } else {
+        drawPixelXY(newX, y, rgbColor);
+      }
+    }
+  }
+
+  dimAll(160U);
+
+  uint8_t numRays = HEIGHT;
+  float angleIncrement = 360.0 / numRays;
+
+  for (uint8_t ray = 0U; ray < numRays; ray++) {
+    float angle = ray * angleIncrement;
+    float angleRad = angle * PI / 180.0;
+    uint8_t soundLevel = packetBuffer[(ray + 6)];
+    float val = (WIDTH / 200.0) * soundLevel;
+    float radius = val * 1.5;
+
+    emitterX = (CENTER_X_MINOR + radius * cos(angleRad));
+    emitterY = (CENTER_Y_MINOR / 2 + radius * sin(angleRad));
+    for (uint8_t distance = 0U; distance < min(WIDTH, HEIGHT) / 2; distance++) {
+      hue = static_cast<uint8_t>(angle * 255 / 360 + deltaHue2);
+      uint8_t brightness = distance * val;
+      if (soundLevel > 2U) drawPixelXYF(emitterX, emitterY, CHSV(hue, 255 - radius * 2,  constrain (soundLevel, 96U, 255U)));
+    }
+  }
+  deltaHue2++;
+}
 #endif

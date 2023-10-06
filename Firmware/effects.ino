@@ -405,31 +405,37 @@ static const uint8_t hueMask[8][16] PROGMEM =
   {1 , 0 , 0 , 0 , 0 , 0 , 0 , 1 , 1 , 0 , 0 , 0 , 0 , 0 , 0 , 1  }
 };
 
-void fireRoutine() {
-  static const bool isColored = true;
+// --------------------------------
+void fire() {
   if (loadingFlag) {
 #if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
     if (selectedSettings) {
       setModeSettings(random8(30U) ? 1U + random8(100U) : 100U, 200U + random8(35U));
     }
 #endif //#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
-
     loadingFlag = false;
     FastLED.clear();
     generateLine();
-    //memset(matrixValue, 0, sizeof(matrixValue)); без очистки
     pcnt = 0;
   }
+  uint8_t baseHue = (float)(modes[currentMode].Scale - 1U) * 2.6;
+  fireRoutine(baseHue);
+}
+
+// --------------------------------
+void fireRoutine(uint8_t baseHue) {
+  static const bool isColored = true;
   if (pcnt >= 30) {                                         // внутренний делитель кадров для поднимающегося пламени
     shiftUp();                                              // смещение кадра вверх
     generateLine();                                         // перерисовать новую нижнюю линию случайным образом
     pcnt = 0;
   }
-  //  drawFrame(pcnt, (strcmp(isColored, "C") == 0));           // прорисовка экрана
-  drawFrame(pcnt, isColored);                              // для прошивки где стоит логический параметр
+
+  drawFrame(pcnt, baseHue, isColored);                      // для прошивки где стоит логический параметр
   pcnt += 25;  // делитель кадров: задает скорость подъема пламени 25/100 = 1/4
 }
 
+// --------------------------------
 // Randomly generate the next line (matrix row)
 void generateLine() {
   for (uint8_t x = 0U; x < WIDTH; x++) {
@@ -437,6 +443,7 @@ void generateLine() {
   }
 }
 
+// --------------------------------
 void shiftUp() {                                            //подъем кадра
   for (uint8_t y = HEIGHT - 1U; y > 0U; y--) {
     for (uint8_t x = 0U; x < WIDTH; x++) {
@@ -454,17 +461,10 @@ void shiftUp() {                                            //подъем ка�
 
 // draw a frame, interpolating between 2 "key frames"
 // @param pcnt percentage of interpolation
-
-void drawFrame(uint8_t pcnt, bool isColored) {                  // прорисовка нового кадра
+// --------------------------------
+void drawFrame(uint8_t pcnt, uint8_t baseHue, bool isColored) {                  // прорисовка нового кадра
   int32_t nextv;
-#ifdef UNIVERSE_FIRE                                            // если определен универсальный огонь  
-  //  uint8_t baseHue = (float)modes[currentMode].Scale * 2.55;
-  uint8_t baseHue = (float)(modes[currentMode].Scale - 1U) * 2.6;
-#else
-  uint8_t baseHue = isColored ? 255U : 0U;
-#endif
-  uint8_t baseSat = (modes[currentMode].Scale < 100) ? 255U : 0U;  // вычисление базового оттенка
-
+  uint8_t baseSat = (baseHue < 254) ? 255U : 0U;  // color or white flame
 
   //first row interpolates with the "next" line
   deltaHue = random(0U, 2U) ? constrain (shiftHue[0] + random(0U, 2U) - random(0U, 2U), 15U, 17U) : shiftHue[0]; // random(0U, 2U)= скорость смещения языков чем больше 2U - тем медленнее
@@ -6185,11 +6185,11 @@ void lumenjerRoutine() {
   if (modes[currentMode].Scale == 100U) {
     // leds[XY(hue, hue2)] += CHSV(random8(), 255U, 255U);
     step += 2;
-    leds[XY(hue, hue2)] = CHSV(step, 255U, 255 - step / 3);
-    leds[XY(WIDTH - hue, HEIGHT - hue2)] = CHSV(step + 128, 255U, 170 + step / 3);
+    drawPixelXY(hue, hue2, CHSV(step, 255U, 255 - step / 3));
+    drawPixelXY(WIDTH - hue, HEIGHT - hue2, CHSV(step + 128, 255U, 170 + step / 3));
   } else {
-    leds[XY(hue, hue2)] = ColorFromPalette(*curPalette, step++);
-    leds[XY(WIDTH - hue, HEIGHT - hue2)] = ColorFromPalette(*curPalette, step + 64);
+    drawPixelXY(hue, hue2, ColorFromPalette(*curPalette, step++));
+    drawPixelXY(WIDTH - hue, HEIGHT - hue2, ColorFromPalette(*curPalette, step + 64));
   }
 }
 

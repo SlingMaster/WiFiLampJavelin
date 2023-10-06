@@ -182,7 +182,7 @@ uint8_t dawnMode;
 bool dawnFlag = false;
 uint32_t thisTime;
 bool manualOff = false;
-bool extCtrl = false;
+byte extCtrl = 0U;
 
 uint8_t FPSdelay = DYNAMIC;
 uint8_t currentMode = 0;
@@ -275,9 +275,8 @@ void setup() {
 #endif
   LOG.print(F("\nСтарт файловой системы\n"));
   FS_init();  //Запускаем файловую систему
-  LOG.print(F("Чтение файла конфигурации\n"));
-  configSetup = readFile("config.json", 2048);
-  LOG.print("configSetup : " + configSetup);
+  // init wars ----
+  initConfigure();
   //Настраиваем и запускаем SSDP интерфейс
   LOG.print(F("Старт SSDP\n"));
   SSDP_init();
@@ -286,57 +285,6 @@ void setup() {
   // HTTP --------------------------------
   runServerHTTP();
 
-  // ==================================================================
-  // Инициализируем переменные, хранящиеся в файле config.json
-  // ==================================================================
-  LAMP_NAME = jsonRead(configSetup, "SSDP");
-  AP_NAME = jsonRead(configSetup, "ssidAP");
-  AP_PASS = jsonRead(configSetup, "passwordAP");
-  Favorit_only = jsonReadtoInt(configSetup, "favorit");
-  random_on = jsonReadtoInt(configSetup, "random_on");
-  espMode = jsonReadtoInt(configSetup, "ESP_mode");
-  PRINT_TIME = jsonReadtoInt(configSetup, "print_time");
-  custom_eff = jsonReadtoInt(configSetup, "custom_eff");
-  camouflage = jsonReadtoInt(configSetup, "camouflage");
-  notifications = jsonReadtoInt(configSetup, "notifications");
-  gb = (jsonReadtoInt(configSetup, "gb") == 1);
-  global_br = jsonReadtoInt(configSetup, "global_br");
-
-
-  if (jsonReadtoInt(configSetup, "fav_effect") >= MODE_AMOUNT) {
-    jsonWrite(configSetup, "fav_effect", EFF_MATRIX);
-  } else {
-    EFF_FAV = jsonReadtoInt(configSetup, "fav_effect");
-  }
-
-  eff_auto = jsonReadtoInt(configSetup, "eff_auto");
-  eff_interval = jsonReadtoInt(configSetup, "eff_interval");
-  eff_rnd = jsonReadtoInt(configSetup, "eff_rnd");
-  eff_valid = jsonReadtoInt(configSetup, "eff_valid");
-  WORKGROUP = jsonReadtoInt(configSetup, "workgroup");
-  LAMP_LIST = jsonRead(configSetup, "lamp_list");
-
-  buttonEnabled = jsonReadtoInt(configSetup, "button_on");
-  ESP_CONN_TIMEOUT = jsonReadtoInt(configSetup, "TimeOut");
-  time_always = jsonReadtoInt(configSetup, "time_always");
-  (jsonRead(configSetup, "run_text")).toCharArray (TextTicker, (jsonRead(configSetup, "run_text")).length() + 1);
-  NIGHT_HOURS_START = 60U * jsonReadtoInt(configSetup, "night_time");
-  NIGHT_HOURS_BRIGHTNESS = jsonReadtoInt(configSetup, "night_bright");
-  NIGHT_HOURS_STOP = 60U * jsonReadtoInt(configSetup, "day_time");
-  DAY_HOURS_BRIGHTNESS = jsonReadtoInt(configSetup, "day_bright");
-  DONT_TURN_ON_AFTER_SHUTDOWN = jsonReadtoInt(configSetup, "effect_always");
-  AUTOMATIC_OFF_TIME = (SLEEP_TIMER * 60UL * 60UL * 1000UL) * ( uint32_t )(jsonReadtoInt(configSetup, "timer5h"));
-
-#ifdef USE_NTP
-  (jsonRead(configSetup, "ntp")).toCharArray (NTP_ADDRESS, (jsonRead(configSetup, "ntp")).length() + 1);
-#endif
-  Serial.print ("TextTicker = ");
-  Serial.println (TextTicker);
-#ifdef USE_NTP
-  winterTime.offset = jsonReadtoInt(configSetup, "timezone") * 60;
-  summerTime.offset = winterTime.offset + jsonReadtoInt(configSetup, "Summer_Time") * 60;
-  localTimeZone.setRules (summerTime, winterTime);
-#endif
 
   // TELNET
 #if defined(GENERAL_DEBUG) && GENERAL_DEBUG_TELNET
@@ -592,7 +540,7 @@ void loop() {
   } do {
     parseUDP();
 
-    if (!extCtrl) {                                                   // відключаємо виконня всіх процесів які не потрібні при виводі на матрицю зі сторонньої програми
+    if (extCtrl == 0U) {                                                   // відключаємо виконня всіх процесів які не потрібні при виводі на матрицю зі сторонньої програми
 
       //delay (10);                                                   // Для одной из плат(NodeMCU v3 без металлического экрана над ESP и Flash памятью) пришлось ставить задержку. Остальные работали нормально.
       if ((connect || !espMode) && ((millis() - my_timer) >= 10UL)) { // Пришлось уменьшить частоту обращений к обработчику запросов web страницы, чтобы не использовать delay (10);.
@@ -666,4 +614,59 @@ void loop() {
 
     ESP.wdtFeed();
   } while (connect);
+}
+
+// ========================================
+void initConfigure() {
+  LOG.print(F("Чтение файла конфигурации\n"));
+  configSetup = readFile("config.json", 2048);
+  LOG.print("configSetup : " + configSetup);
+
+  // init vars from config.json -----------
+  LAMP_NAME = jsonRead(configSetup, "SSDP");
+  AP_NAME = jsonRead(configSetup, "ssidAP");
+  AP_PASS = jsonRead(configSetup, "passwordAP");
+  Favorit_only = jsonReadtoInt(configSetup, "favorit");
+  random_on = jsonReadtoInt(configSetup, "random_on");
+  espMode = jsonReadtoInt(configSetup, "ESP_mode");
+  PRINT_TIME = jsonReadtoInt(configSetup, "print_time");
+  custom_eff = jsonReadtoInt(configSetup, "custom_eff");
+  camouflage = jsonReadtoInt(configSetup, "camouflage");
+  notifications = jsonReadtoInt(configSetup, "notifications");
+  gb = (jsonReadtoInt(configSetup, "gb") == 1);
+  global_br = jsonReadtoInt(configSetup, "global_br");
+
+  if (jsonReadtoInt(configSetup, "fav_effect") >= MODE_AMOUNT) {
+    jsonWrite(configSetup, "fav_effect", EFF_MATRIX);
+  } else {
+    EFF_FAV = jsonReadtoInt(configSetup, "fav_effect");
+  }
+
+  eff_auto = jsonReadtoInt(configSetup, "eff_auto");
+  eff_interval = jsonReadtoInt(configSetup, "eff_interval");
+  eff_rnd = jsonReadtoInt(configSetup, "eff_rnd");
+  eff_valid = jsonReadtoInt(configSetup, "eff_valid");
+  WORKGROUP = jsonReadtoInt(configSetup, "workgroup");
+  LAMP_LIST = jsonRead(configSetup, "lamp_list");
+
+  buttonEnabled = jsonReadtoInt(configSetup, "button_on");
+  ESP_CONN_TIMEOUT = jsonReadtoInt(configSetup, "TimeOut");
+  time_always = jsonReadtoInt(configSetup, "time_always");
+  (jsonRead(configSetup, "run_text")).toCharArray (TextTicker, (jsonRead(configSetup, "run_text")).length() + 1);
+  NIGHT_HOURS_START = 60U * jsonReadtoInt(configSetup, "night_time");
+  NIGHT_HOURS_BRIGHTNESS = jsonReadtoInt(configSetup, "night_bright");
+  NIGHT_HOURS_STOP = 60U * jsonReadtoInt(configSetup, "day_time");
+  DAY_HOURS_BRIGHTNESS = jsonReadtoInt(configSetup, "day_bright");
+  DONT_TURN_ON_AFTER_SHUTDOWN = jsonReadtoInt(configSetup, "effect_always");
+  AUTOMATIC_OFF_TIME = (SLEEP_TIMER * 60UL * 60UL * 1000UL) * ( uint32_t )(jsonReadtoInt(configSetup, "timer5h"));
+
+#ifdef USE_NTP
+  (jsonRead(configSetup, "ntp")).toCharArray (NTP_ADDRESS, (jsonRead(configSetup, "ntp")).length() + 1);
+#endif
+
+#ifdef USE_NTP
+  winterTime.offset = jsonReadtoInt(configSetup, "timezone") * 60;
+  summerTime.offset = winterTime.offset + jsonReadtoInt(configSetup, "Summer_Time") * 60;
+  localTimeZone.setRules (summerTime, winterTime);
+#endif
 }
