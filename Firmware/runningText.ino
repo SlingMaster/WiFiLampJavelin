@@ -162,7 +162,7 @@ void drawLetter(uint8_t subleter, uint8_t letter, int8_t offset, CRGB letterColo
       // рисуем столбец (i - горизонтальная позиция, j - вертикальная)
       if (TEXT_DIRECTION) {
         if (thisBit) {
-          leds[XY(offset + i, TEXT_HEIGHT + j)] = letterColor;
+          drawPixelXY(offset + i, TEXT_HEIGHT + j, letterColor);
           drawPixelXY(offset + i + 1, TEXT_HEIGHT + j - 1, bgColor);
         } else {
           if (bgColor != 1) {
@@ -171,7 +171,7 @@ void drawLetter(uint8_t subleter, uint8_t letter, int8_t offset, CRGB letterColo
         }
       } else {
         if (thisBit) {
-          leds[XY(i, offset + TEXT_HEIGHT + j)] = letterColor;
+          drawPixelXY(i, offset + TEXT_HEIGHT + j, letterColor);
           drawPixelXY(offset + i + 1, TEXT_HEIGHT + j - 1, bgColor);
         }  else {
           if (bgColor != 1) {

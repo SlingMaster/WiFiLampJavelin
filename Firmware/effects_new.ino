@@ -8,6 +8,7 @@
   возможно в будущем будет сделано динамическим
   • FastLED Colors
   http://fastled.io/docs/3.1/struct_c_r_g_b.html
+  https://github.com/FastLED/FastLED/wiki/Pixel-reference
 */
 
 uint8_t const exp_gamma[256] = {
@@ -2504,7 +2505,7 @@ void LightFilter() {
 void NewYearsCard() {
   static const uint8_t gamma[3][30] = {
     {
-      0x20, 0x20, 0x48, 0x45, 0x50, 0x50, 0x59, 0x20, 0x4E, 0x45,
+      0x20, 0x20, 0x48, 0x41, 0x50, 0x50, 0x59, 0x20, 0x4E, 0x45,
       0x57, 0x20, 0x59, 0x45, 0x41, 0x52, 0x21, 0x20, 0x20, 0x20,
       0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x00, 0x02
     },
@@ -3730,15 +3731,12 @@ void Serpentine() {
     uint32_t x1 = beatsin16(step1, WIDTH, (HEIGHT - 1) * 256, WIDTH, y * freq + 32768) / 2;
 
     // change color --------
-    // CRGB col1 = CHSV(ms / 29 + y * 255 / (HEIGHT - 1) + 128, 255 - abs(128 - step)/4, qadd8(hue, beatsin8(step1, 60, 255U, 0, y * mn + 128)));
-    // CRGB col3 = CHSV(ms / 29 + y * 255 / (HEIGHT - 1), 255, qadd8(hue, beatsin8(step1, 60, 255U, 0, y * mn + 128)) );
     CRGB col1 = CHSV(ms / 29 + y * 256 / (HEIGHT - 1) + 128, 255, 255 - (HEIGHT - y) * BR_INTERWAL);
     CRGB col2 = CHSV(ms / 29 + y * 256 / (HEIGHT - 1), 255, 255 - (HEIGHT - y) * BR_INTERWAL);
     // CRGB col3 = CHSV(ms / 29 + y * 256 / (HEIGHT - 1) + step, 255, 255 - (HEIGHT - y) * BR_INTERWAL - fade);
 
     wu_pixel( x1 + hue * DELTA, yy - PADDING * (255 - hue), &col1);
     wu_pixel( abs((WIDTH - 1) * 256 - (x1 + hue * DELTA)), yy - PADDING * hue, &col2);
-    //    wu_pixel( x1 + hue * DELTA, yy - PADDING * 3 * (255 - hue), &col3);
   }
 
   step++;
