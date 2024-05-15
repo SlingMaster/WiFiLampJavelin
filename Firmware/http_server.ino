@@ -464,11 +464,7 @@ String getCurState() {
   lamp_state += "\"bright\":" + String(bright) + ",";
   lamp_state += "\"speed\":" + String(modes[currentMode].Speed) + ",";
   lamp_state += "\"free_heap\":" + String(system_get_free_heap_size()) + ",";
-#ifdef  JAVELIN
-  lamp_state += "\"javelin\":1,";
-#else
-  lamp_state += "\"javelin\":0,";
-#endif
+  lamp_state += "\"javelin\":" + String(IOT_TYPE) + ",";
   lamp_state += "\"scale\":" + String(modes[currentMode].Scale);
   return lamp_state;
 }
