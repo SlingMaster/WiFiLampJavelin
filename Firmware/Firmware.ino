@@ -95,7 +95,12 @@
 #include "data_gif.h"
 
 // --- ИНИЦИАЛИЗАЦИЯ ОБЪЕКТОВ ----------
+#ifdef  JAVELIN
+CRGB leds[NUM_LEDS + ROUND_MATRIX + LIGHT_MATRIX];
+#else
 CRGB leds[NUM_LEDS];
+#endif
+
 WiFiUDP Udp;
 
 #ifdef USE_NTP
@@ -248,7 +253,7 @@ void setup() {
 
   // ПИНЫ
 
-
+  pinMode(LED_PIN, INPUT);
 #ifdef  JAVELIN
 #ifdef BACKLIGHT_PIN
   pinMode(BACKLIGHT_PIN, OUTPUT);
@@ -344,7 +349,9 @@ void setup() {
 #endif
 
 
-  // ЛЕНТА/МАТРИЦА
+  // BUTTON & MATRIX
+  delay(1000);
+  pinMode(LED_PIN, OUTPUT);
 #ifdef JAVELIN
   FastLED.addLeds<WS2812B, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS + ROUND_MATRIX + LIGHT_MATRIX);     /*.setCorrection(TypicalLEDStrip)*/
   /* механічна кнопка тест Javelin ------------- */
@@ -356,17 +363,19 @@ void setup() {
 #endif
 
   //FastLED.addLeds<WS2812B, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(0xFFB0F0); // по предложению @kostyamat добавлена такая цветокоррекция "теперь можно получить практически чистый желтый цвет" и получилось плохо
-  FastLED.setBrightness(BRIGHTNESS);
+
   if (CURRENT_LIMIT > 0) {
     FastLED.setMaxPowerInVoltsAndMilliamps(5, CURRENT_LIMIT);
   }
+
+  FastLED.setBrightness(BRIGHTNESS);
+  FastLED.clear();
+
 #ifdef JAVELIN
   DrawLevel(0, (ROUND_MATRIX + LIGHT_MATRIX), (ROUND_MATRIX + LIGHT_MATRIX), CHSV {180, 0, 0});
 #endif
-  FastLED.clear();
-  FastLED.show();
 
-
+  FastLED.delay(2);
 
   // EEPROM
   EepromManager::InitEepromSettings(                        // инициализация EEPROM; запись начального состояния настроек, если их там ещё нет; инициализация настроек лампы значениями из EEPROM
@@ -420,8 +429,8 @@ void setup() {
     LOG.println ("*******************************************");
     LOG.println("     Version • " + VERSION + " effects");
 #endif
-    connect = true;
     delay (100);
+    connect = true;
   } else {                                                     // режим WiFi клиента. Подключаемся к роутеру
     LOG.println(F("Старт WiFi в режиме клиента (подключение к роутеру)"));
     WiFi.persistent(false);
@@ -530,8 +539,12 @@ void loop() {
       FastLED.clear();
       FastLED.delay(2);
 #endif SHOW_IP_TO_START
-      delay (100);
+
+      delay (500);
       CompareVersion();
+      delay (500);
+      FastLED.clear();
+      FastLED.delay(2);
     }
   }
 
