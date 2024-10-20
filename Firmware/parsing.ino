@@ -253,14 +253,12 @@ void sendJsonData(char *outputBuffer, uint8_t cmd, String jsonStr) {
   json += "\"cmd\":" + String(cmd);
   // chip id ------------
   json += ",\"id\":\"" + getChipIdToStr() + "\"";
-#ifdef USE_NTP
   char stringTime[6U];
   localTime(stringTime);
   char timeBuf[9];
   getFormattedTime(timeBuf);
   // time sync ----------
   json += ",\"sync\":\"" + String(timeBuf) + "\"";
-#endif
   // json data ----------
   if (jsonStr != "") {
     json += jsonStr;
@@ -352,7 +350,7 @@ void setFPS() {
     }
   }
 #ifdef GENERAL_DEBUG
-  LOG.printf_P(PSTR(" Effect • %03d | FPSdelay • %d\n\r"), currentMode, FPSdelay);
+  LOG.printf_P(PSTR(" Effect • %03d | FPSdelay • %d | %d |\n\r"), currentMode, FPSdelay, eff_valid);
 #endif
 }
 

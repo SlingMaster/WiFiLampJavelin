@@ -136,13 +136,10 @@ String runCommand(byte cmd, uint8_t val, String valStr) {
     case CMD_POWER:
       if (val == 3) {               // toggle
         ONflag = !ONflag;
-      } else {
-        if (val == 0) {
-          ONflag = false;           // off
-        } else {
-          ONflag = true;            // on
-        }
+      } else {                      // on or off
+        ONflag = val;
       }
+
       changePower();
 #ifdef USE_MULTIPLE_LAMPS_CONTROL
       multipleLampControl();
@@ -198,14 +195,12 @@ String runCommand(byte cmd, uint8_t val, String valStr) {
 
     case CMD_TEXT: {
         String tempStr = TextTicker;
-        if (valStr != "") {
-          if (eff_valid == 2) {
-            jsonWrite(configSetup, "run_text", valStr);
-          }
-          tempStr = valStr;
+        if (valStr == "") {
+          tempStr = getNameIOT(IOT_TYPE);
         } else {
-          tempStr = jsonRead(configSetup, "run_text");
+          tempStr = (eff_valid < 2) ? valStr : jsonRead(configSetup, "run_text");
         }
+        LOG.println("• Print Text • " + tempStr);
         printMSG(tempStr, false);
       }
       break;
@@ -244,13 +239,24 @@ String runCommand(byte cmd, uint8_t val, String valStr) {
       loadingFlag = false;
       // path -----------------
       if (SPIFFS.exists("/" + valStr)) {
-        body += "\"status\":\"OK\",";
-        body += "\"list\":" + readFile(valStr, 4096) + ",";
+        IPAddress ip = WiFi.localIP();
+
+#ifdef GENERAL_DEBUG
+        LOG.println(" • Loading list effects | " + valStr);
+#endif
+        body = "\"status\":\"OK\",";
+        body += "\"ip\":\"" + ipToString(ip) + "\",";
+        body += "\"e_ip\":\"" + e_ip + "\",";
+        body += "\"max_eff\":" + String(MODE_AMOUNT) + ",";
+        // body += getLampID() + ",";
+        body += "\"list\":" + readFile(valStr, 2048);
       } else {
         body += "\"status\":\"Error File Not Found\",";
       }
+      sendResponse(cmd, body);
+      body = "";
+      return "";
       break;
-
     case CMD_SHOW_EFF:
       if (eff_auto == 1) eff_auto = 0; // off cycle effects
       currentMode = val;
@@ -281,6 +287,7 @@ String runCommand(byte cmd, uint8_t val, String valStr) {
       break;
     case CMD_SAVE_CFG :
       configSetup = valStr;
+      getNameIOT(IOT_TYPE);
       LOG.println("config save:" + configSetup);
       body += "\"cfg_save\":\"OK\",";
       saveConfig();
@@ -368,6 +375,9 @@ String runCommand(byte cmd, uint8_t val, String valStr) {
       jsonWrite(configSetup, "eff_valid", eff_valid);
       break;
     case CMD_CONNECT:
+#ifdef GENERAL_DEBUG
+      LOG.println(" ======== APP CONNECTED TO LAMP ========");
+#endif
       break;
     case CMD_OTA:
       eff_auto = 0;
@@ -405,6 +415,9 @@ void handle_cmd() {
   String valStr = HTTP.arg("valStr");
   uint8_t val = HTTP.arg("val") ? HTTP.arg("val").toInt() : 0;
   String body = runCommand(cmd, val, valStr);
+  if (cmd == CMD_LIST) {
+    return;
+  }
   body += getCurState();
   sendResponse(cmd, body);
 }
@@ -530,7 +543,7 @@ void sendHTML(String body) {
   output += "<head>\r\n<meta charset='utf-8'>\r\n<title>ESP-8266</title>\r\n";
   output += "<script>window.onload=function(){window.parent.postMessage(document.body.innerHTML, '*')};</script>\r\n";
   output += "</head>\r\n";
-  output += "<body>{" + body + "}</body>";
+  output += "<body>{" + body + "}</body>\r\n";
   output += "</html>\r\n";
   HTTP.send(200, "text/html", output);
 }

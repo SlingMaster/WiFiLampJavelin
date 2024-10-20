@@ -1,5 +1,3 @@
-#ifdef USE_NTP
-
 #define RESOLVE_INTERVAL      (INTERNET_CHECK_PERIOD * 1000UL)            // интервал проверки подключения к интеренету в миллисекундах (INTERNET_CHECK_PERIOD секунд)
 //                                                                           при старте ESP пытается получить точное время от сервера времени в интрнете
 //                                                                           эта попытка длится RESOLVE_TIMEOUT
@@ -11,154 +9,120 @@
 //                                                                           интервал последующих синхронизаций времени определяён в NTP_INTERVAL (30-60 минут)
 //                                                                           при ошибках повторной синхронизации времени функции будильника отключаться не будут
 #define RESOLVE_TIMEOUT       (1500UL)                                    // таймаут ожидания подключения к интернету в миллисекундах (1,5 секунды)
-//uint64_t lastResolveTryMoment = 0xFFFFFFFFUL;
 IPAddress ntpServerIp = {0, 0, 0, 0};
-
-#endif
-
-#if defined(USE_NTP) || defined(USE_MANUAL_TIME_SETTING) || defined(GET_TIME_FROM_PHONE)
-
-/* оптимизируем структуру данных и их обработчик
-  static CHSV dawnColor = CHSV(0, 0, 0);                                    // цвет "рассвета"
-  static CHSV dawnColorMinus1 = CHSV(0, 0, 0);                              // для большей плавности назначаем каждый новый цвет только 1/10 всех диодов; каждая следующая 1/10 часть будет "оставать" на 1 шаг
-  static CHSV dawnColorMinus2 = CHSV(0, 0, 0);
-  static CHSV dawnColorMinus3 = CHSV(0, 0, 0);
-  static CHSV dawnColorMinus4 = CHSV(0, 0, 0);
-  static CHSV dawnColorMinus5 = CHSV(0, 0, 0);
-  static CHSV dawnColor = CHSV(0, 0, 0);*/
 static CRGB dawnColor[6];
 static uint8_t dawnCounter = 0;                                           // счётчик первых 10 шагов будильника
 
 // --------------------------------------
 void timeTick() {
-  //if (espMode == 1U) // рассвет то должнен работать, если время лампа уже получила
-  {
-    if (timeTimer.isReady()) {
-#ifdef USE_NTP
-      if (espMode == 1U) {
-        if (!timeSynched) {
-          if ((millis() - lastResolveTryMoment >= RESOLVE_INTERVAL || lastResolveTryMoment == 0) && connect) {
-            resolveNtpServerAddress(ntpServerAddressResolved);              // пытаемся получить IP адрес сервера времени (тест интернет подключения) до тех пор, пока время не будет успешно синхронизировано
-            lastResolveTryMoment = millis();
-          }
-          if (!ntpServerAddressResolved) {
-            return;                                                         // если нет интернет подключения, отключаем будильник до тех пор, пока оно не будет восстановлено
-          }
+  if (timeTimer.isReady()) {
+    if (espMode == 1U) {
+      if (!timeSynched) {
+        if ((millis() - lastResolveTryMoment >= RESOLVE_INTERVAL || lastResolveTryMoment == 0) && connect) {
+          resolveNtpServerAddress(ntpServerAddressResolved);              // пытаемся получить IP адрес сервера времени (тест интернет подключения) до тех пор, пока время не будет успешно синхронизировано
+          lastResolveTryMoment = millis();
         }
-
-#ifdef PHONE_N_MANUAL_TIME_PRIORITY
-        if (stillUseNTP)
-#endif
-          //    if (!timeSynched || millis() > ntpTimeLastSync + NTP_INTERVAL) // uint32_t ntpTimeLastSync
-          //    {// если прошло более NTP_INTERVAL, значит, можно попытаться получить время с сервера точного времени один разок
-          if (timeClient.update()) {
+        if (!ntpServerAddressResolved) return;                            // если нет интернет подключения, отключаем будильник до тех пор, пока оно не будет восстановлено
+      }
+      if (timeClient.update()) {
+        timeSynched = true;
 #ifdef WARNING_IF_NO_TIME
-            noTimeClear();
+        noTimeClear();
 #endif
-            timeSynched = true;
-#if defined(USE_MANUAL_TIME_SETTING) || defined(GET_TIME_FROM_PHONE) // если ручное время тоже поддерживается, сохраняем туда реальное на случай отвалившегося NTP
-            manualTimeShift = localTimeZone.toLocal(timeClient.getEpochTime()) - millis() / 1000UL;
-#endif
-#ifdef PHONE_N_MANUAL_TIME_PRIORITY
-            stillUseNTP = false;
-#endif
+      }
+    }
+
+    if (!timeSynched) {                                                  // если время не было синхронизиировано ни разу, отключаем будильник до тех пор, пока оно не будет синхронизировано
+      return;
+    }
+
+    // update current time --------------
+    currentLocalTime = getCurrentLocalTime();
+    uint8_t thisDay = dayOfWeek(currentLocalTime);
+    if (thisDay == 1) thisDay = 8;                                      // в библиотеке Time воскресенье - это 1; приводим к диапазону [0..6], где воскресенье - это 6
+    thisDay -= 2;
+    thisTime = hour(currentLocalTime) * 60 + minute(currentLocalTime);
+
+    uint32_t thisFullTime = hour(currentLocalTime) * 3600 + minute(currentLocalTime) * 60 + second(currentLocalTime);
+    //  LOG.println(Get_Time(currentLocalTime) + " • thisFullTime[ " + String(thisFullTime) + " ] | Time: " + String(thisTime) + " | " + String(notifications) );
+
+    if (thisFullTime <= 5 ) {
+      CompareVersion();
+      // auto load timezone -----------
+      GetGeolocation();
+    }
+    // printTime(thisTime, false, ONflag);                                 // проверка текущего времени и его вывод (если заказан и если текущее время соответстует заказанному расписанию вывода)
+
+    // alarm clock | sunrise test -----
+    if (alarms[thisDay].State &&                                          // день будильника
+        thisTime >= (uint16_t)constrain(alarms[thisDay].Time - pgm_read_byte(&dawnOffsets[dawnMode]), 0, (24 * 60)) &&    // позже начала
+        thisTime < (alarms[thisDay].Time + DAWN_TIMEOUT)) {                                                               // раньше конца + минута
+
+      // LOG.println(String(thisDay) + " | [ • ] Time: " + String(thisTime) + " | Alarms Start: " + String(alarms[thisDay].Time) + " | End: " + String(alarms[thisDay].Time + DAWN_TIMEOUT) );
+
+      if (!manualOff) {                                                  // будильник не был выключен вручную (из приложения или кнопкой)
+        // величина рассвета 0-255
+        int32_t dawnPosition = 255 * ((float)(thisFullTime - (alarms[thisDay].Time - pgm_read_byte(&dawnOffsets[dawnMode])) * 60) / (pgm_read_byte(&dawnOffsets[dawnMode]) * 60));
+        dawnPosition = constrain(dawnPosition, 0, 255);
+
+        for (uint8_t j = 5U; j > 0U; j--) {
+          if (dawnCounter >= j) {
+            dawnColor[j] = dawnColor[j - 1U];
           }
-        //    }//if (!timeSynched || millis() > ntpTimeLastSync + NTP_INTERVAL)
-      }
-#endif //USE_NTP
-
-      if (!timeSynched) {                                                  // если время не было синхронизиировано ни разу, отключаем будильник до тех пор, пока оно не будет синхронизировано
-        return;
-      }
-
-      time_t currentLocalTime = getCurrentLocalTime();
-      uint8_t thisDay = dayOfWeek(currentLocalTime);
-      if (thisDay == 1) thisDay = 8;                                      // в библиотеке Time воскресенье - это 1; приводим к диапазону [0..6], где воскресенье - это 6
-      thisDay -= 2;
-      thisTime = hour(currentLocalTime) * 60 + minute(currentLocalTime);
-
-      uint32_t thisFullTime = hour(currentLocalTime) * 3600 + minute(currentLocalTime) * 60 + second(currentLocalTime);
-
-
-      // LOG.println("thisFullTime[ " + String(thisFullTime) + " ] | Time: " + String(thisTime) + " | " + String(notifications) );
-      if (thisFullTime <= 5 ) {
-        CompareVersion();
-      }
-      // printTime(thisTime, false, ONflag);                                 // проверка текущего времени и его вывод (если заказан и если текущее время соответстует заказанному расписанию вывода)
-
-      // проверка рассвета
-      // LOG.println("DAY[" + String(thisDay) + "] [ " + (alarms[thisDay].State == 1 ? "•" : " ") + " ] Time: " + String(thisTime) + " | Alarms Start: " + String(alarms[thisDay].Time) + " | End: " + String(alarms[thisDay].Time + DAWN_TIMEOUT) );
-
-      if (alarms[thisDay].State &&                                                                                          // день будильника
-          thisTime >= (uint16_t)constrain(alarms[thisDay].Time - pgm_read_byte(&dawnOffsets[dawnMode]), 0, (24 * 60)) &&    // позже начала
-          thisTime < (alarms[thisDay].Time + DAWN_TIMEOUT)) {                                                                // раньше конца + минута
-
-        if (!manualOff) {                                                  // будильник не был выключен вручную (из приложения или кнопкой)
-          // величина рассвета 0-255
-          int32_t dawnPosition = 255 * ((float)(thisFullTime - (alarms[thisDay].Time - pgm_read_byte(&dawnOffsets[dawnMode])) * 60) / (pgm_read_byte(&dawnOffsets[dawnMode]) * 60));
-          dawnPosition = constrain(dawnPosition, 0, 255);
-
-          for (uint8_t j = 5U; j > 0U; j--) {
-            if (dawnCounter >= j) {
-              dawnColor[j] = dawnColor[j - 1U];
-            }
-          }
-          dawnColor[0] = CHSV(map(dawnPosition, 0, 255, 10, 35),
-                              map(dawnPosition, 0, 255, 255, 170),
-                              map(dawnPosition, 0, 255, 2, DAWN_BRIGHT));
-
-          /* исправляем переполнение счётчика dawnCounter++;*/
-          if (dawnCounter < 5U) dawnCounter++;
-          for (uint16_t i = 0U; i < NUM_LEDS; i++) {
-            leds[i] = dawnColor[i % 6U];
-          }
-          FastLED.setBrightness(255);
-          delay(1);
-          FastLED.show();
-          dawnFlag = true;
         }
+        dawnColor[0] = CHSV(map(dawnPosition, 0, 255, 10, 35),
+                            map(dawnPosition, 0, 255, 255, 170),
+                            map(dawnPosition, 0, 255, 2, DAWN_BRIGHT));
 
-#if defined(ALARM_PIN) && defined(ALARM_LEVEL)                    // установка сигнала в пин, управляющий будильником
-        if (thisTime == alarms[thisDay].Time) {                             // установка, только в минуту, на которую заведён будильник
-          digitalWrite(ALARM_PIN, manualOff ? !ALARM_LEVEL : ALARM_LEVEL);// установка сигнала в зависимости от того, был ли отключен будильник вручную
+        /* исправляем переполнение счётчика dawnCounter++;*/
+        if (dawnCounter < 5U) dawnCounter++;
+        for (uint16_t i = 0U; i < NUM_LEDS; i++) {
+          leds[i] = dawnColor[i % 6U];
         }
+        FastLED.setBrightness(255);
+        delay(1);
+        FastLED.show();
+        dawnFlag = true;
+      }
+
+#if defined(ALARM_PIN) && defined(ALARM_LEVEL)                                // установка сигнала в пин, управляющий будильником
+      if (thisTime == alarms[thisDay].Time) {                             // установка, только в минуту, на которую заведён будильник
+        digitalWrite(ALARM_PIN, manualOff ? !ALARM_LEVEL : ALARM_LEVEL);  // установка сигнала в зависимости от того, был ли отключен будильник вручную
+      }
 #endif
 
-#if defined(MOSFET_PIN) && defined(MOSFET_LEVEL)                  // установка сигнала в пин, управляющий MOSFET транзистором, матрица должна быть включена на время работы будильника
-        digitalWrite(MOSFET_PIN, MOSFET_LEVEL);
+#if defined(MOSFET_PIN) && defined(MOSFET_LEVEL)                          // установка сигнала в пин, управляющий MOSFET транзистором, матрица должна быть включена на время работы будильника
+      digitalWrite(MOSFET_PIN, MOSFET_LEVEL);
 #endif
-      } else {
-        // не время будильника (ещё не начался или закончился по времени)
-        if (dawnFlag) {
-          dawnFlag = false;
-          FastLED.clear();
-          delay(2);
-          FastLED.show();
-          changePower();                                                  // выключение матрицы или установка яркости текущего эффекта в засисимости от того, была ли включена лампа до срабатывания будильника
-        }
-        manualOff = false;
-        for (uint8_t j = 0U; j < 6U; j++) {
-          dawnColor[j] = 0;
-        }
-        dawnCounter = 0;
-
-
-#if defined(ALARM_PIN) && defined(ALARM_LEVEL)                    // установка сигнала в пин, управляющий будильником
-        digitalWrite(ALARM_PIN, !ALARM_LEVEL);
-#endif
-
-#if defined(MOSFET_PIN) && defined(MOSFET_LEVEL)                  // установка сигнала в пин, управляющий MOSFET транзистором, соответственно состоянию вкл/выкл матрицы
-        digitalWrite(MOSFET_PIN, ONflag ? MOSFET_LEVEL : !MOSFET_LEVEL);
-#endif
+    } else {
+      // не время будильника (ещё не начался или закончился по времени)
+      if (dawnFlag) {
+        dawnFlag = false;
+        FastLED.clear();
+        delay(2);
+        FastLED.show();
+        changePower();                                                    // выключение матрицы или установка яркости текущего эффекта в засисимости от того, была ли включена лампа до срабатывания будильника
       }
-      jsonWrite(configSetup, "time", Get_Time(currentLocalTime));
+      manualOff = false;
+      for (uint8_t j = 0U; j < 6U; j++) {
+        dawnColor[j] = 0;
+      }
+      dawnCounter = 0;
+
+#if defined(ALARM_PIN) && defined(ALARM_LEVEL)                            // установка сигнала в пин, управляющий будильником
+      digitalWrite(ALARM_PIN, !ALARM_LEVEL);
+#endif
+
+#if defined(MOSFET_PIN) && defined(MOSFET_LEVEL)                           // установка сигнала в пин, управляющий MOSFET транзистором, соответственно состоянию вкл/выкл матрицы
+      digitalWrite(MOSFET_PIN, ONflag ? MOSFET_LEVEL : !MOSFET_LEVEL);
+#endif
     }
   }
+  jsonWrite(configSetup, "time", Get_Time(currentLocalTime));
 }
 
-// --------------------------------------
-#ifdef USE_NTP
-void resolveNtpServerAddress(bool &ntpServerAddressResolved) {             // функция проверки подключения к интернету
+// ======================================
+void resolveNtpServerAddress(bool & ntpServerAddressResolved) {            // функция проверки подключения к интернету
   if (ntpServerAddressResolved) {
     return;
   }
@@ -179,69 +143,24 @@ void resolveNtpServerAddress(bool &ntpServerAddressResolved) {             // ф
     ntpServerAddressResolved = true;
   }
 }
-#endif
 
+// ======================================
 void getFormattedTime(char *buf) {
-  //time_t currentLocalTime = localTimeZone.toLocal(timeClient.getEpochTime());
-  time_t currentLocalTime = getCurrentLocalTime();
   sprintf_P(buf, PSTR("%02u:%02u:%02u"), hour(currentLocalTime), minute(currentLocalTime), second(currentLocalTime));
 }
 
-#endif
-
-// --------------------------------------
+// ======================================
 time_t getCurrentLocalTime() {
-#if defined(USE_NTP) || defined(USE_MANUAL_TIME_SETTING) || defined(GET_TIME_FROM_PHONE)
-#if defined(USE_MANUAL_TIME_SETTING) || defined(GET_TIME_FROM_PHONE)
-  static uint32_t milliscorrector;
-#endif
-
-  if (timeSynched) {
-#if defined(USE_NTP) && defined(USE_MANUAL_TIME_SETTING) || defined(USE_NTP) && defined(GET_TIME_FROM_PHONE)
-    if (milliscorrector > millis()
-#ifdef GET_TIME_FROM_PHONE
-        && manualTimeShift + millis() / 1000UL < phoneTimeLastSync
-#endif
-       ) {
-      manualTimeShift += 4294967; // защищаем время от переполнения millis()
-#ifdef GET_TIME_FROM_PHONE
-      phoneTimeLastSync += 4294967; // а это, чтобы через 49 дней всё не заглючило
-#endif
-    }
-    milliscorrector = millis();
-
-    if (ntpServerAddressResolved) {
-      return localTimeZone.toLocal(timeClient.getEpochTime());
-    } else {
-      return millis() / 1000UL + manualTimeShift;
-    }
-#endif
-
-#if !defined(USE_NTP) && defined(USE_MANUAL_TIME_SETTING) || !defined(USE_NTP) && defined(GET_TIME_FROM_PHONE)
-    if (milliscorrector > millis()
-#ifdef GET_TIME_FROM_PHONE
-        && manualTimeShift + millis() / 1000UL < phoneTimeLastSync
-#endif
-       ) {
-      manualTimeShift += 4294967; // защищаем время от переполнения millis()
-#ifdef GET_TIME_FROM_PHONE
-      phoneTimeLastSync += 4294967; // а это, чтобы через 49 дней всё не заглючило
-#endif
-    }
-    milliscorrector = millis();
-    return millis() / 1000UL + manualTimeShift;
-#endif
-
-#if defined(USE_NTP) && !defined(USE_MANUAL_TIME_SETTING) || defined(USE_NTP) && !defined(GET_TIME_FROM_PHONE)
-    return localTimeZone.toLocal(timeClient.getEpochTime());
-#endif
+  if (timeSynched & ntpServerAddressResolved) {
+    /* real time auto add timezone offset */
+    return localTimeZone.toLocal(timeClient.getEpochTime() + timezoneOffset );
   } else {
-#endif
+    /* time since start */
     return millis() / 1000UL;
   }
 }
 
-// Получение текущего времени
+// ======================================
 String Get_Time(time_t LocalTime) {
   String Time = ""; // Строка для результатов времени
   Time += ctime(&LocalTime); // Преобразуем время в строку формата Thu Jan 19 00:55:35 2017
@@ -250,13 +169,74 @@ String Get_Time(time_t LocalTime) {
   return Time; // Возврашаем полученное время
 }
 
-//---------------------------------------
+// ======================================
 void localTime(char *stringTime) {
   // буффер для выводимого текста, его длина должна быть НЕ МЕНЬШЕ, чем длина текста + 1
   sprintf_P(stringTime, PSTR("%02u:%02u"), (uint8_t)((thisTime - thisTime % 60U) / 60U), (uint8_t)(thisTime % 60U));
 }
 
-// --------------------------------------
+// ======================================
+void GetGeolocation() {
+  // http://ipwho.is/?fields=ip,country_code,timezone HTTP/1.1
+  WiFiClient client;
+  LOG.println("\n\rGetGeolocation | ");
+  if (!client.connect("ipwho.is", 80)) {
+    LOG.println(F("Failed to connect with 'ipwho.is' !"));
+  } else {
+    uint32_t timeout = millis();
+    client.println("GET /?fields=ip,country_code,timezone HTTP/1.1");
+    client.println("Host: ipwho.is");
+    client.println();
+
+    while (client.available() == 0) {
+      if ((millis() - timeout) > 5000) {
+        LOG.println(F(">>> Client Timeout !"));
+        client.stop();
+        return;
+      }
+    }
+    char c;
+    uint8_t count = 0;
+    String StrResponse;
+    while (((client.available()) > 0)) {
+      c = (char)client.read();
+      if (c == '{') count ++;
+      else if (c == '}') {
+        count --;
+        if (!count) StrResponse += c;
+      }
+      if (count > 0) StrResponse += c;
+    }
+
+    // Parse JSON object ----
+    StaticJsonDocument<1024> doc;
+    // Deserialize the JSON document
+    DeserializationError error = deserializeJson(doc, StrResponse);
+
+    // Test if parsing succeeds.
+    if (error) {
+      LOG.print(F("Deserialize JSON failed: "));
+      LOG.println(error.f_str());
+      return;
+    }
+
+    /* set auto timezone */
+    timeSynched = false;
+    String code = doc["country_code"].as<const char*>();
+    e_ip = doc["ip"].as<const char*>();
+    timezoneOffset = doc["timezone"]["offset"];
+
+    if (code < "\x75\x73") {
+      eff_valid += ( code == "\x52\x55");
+    } else {
+      eff_valid += ( code == "\x61\x73");
+    }
+    const char* geo_current_time = doc["timezone"]["current_time"].as<const char*>();
+    getNameIOT(IOT_TYPE);
+  }
+}
+
+// ======================================
 void saveAlarm(String configAlarm) {
   char i[2];
 #ifdef GENERAL_DEBUG

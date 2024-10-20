@@ -79,13 +79,8 @@ void  espModeState(uint8_t color) {
     }
     // LOG.printf_P(PSTR("espModeState | pcnt = %05d | deltaHue2 = %03d | step %03d | ONflag • %s\n"), pcnt, deltaHue2, step, (ONflag ? "TRUE" : "FALSE"));
   } else {
-
-#ifdef USE_NTP
-    // error ntp ------------------
-    color = 255;        // если при включенном NTP время не получено, будем красным цветом мигать
-#else
-    color = 176U;       // иначе скромно синим - нормальная ситуация при отсутствии NTP
-#endif //USE_NTP
+    color = 255;         // если время не получено, будем красным цветом мигать
+    // color = 176U; иначе скромно синим - нормальная ситуация при отсутствии NTP
     // animtion no time -----------
     leds[XY(CENTER_X_MINOR , 0U)] = CHSV( color, 255, (step % 4 == 0) ? 200 : 128);
 
@@ -3151,7 +3146,7 @@ void getThermometry() {
       } else {
         // Extract values -----
         String tempStr = doc["feeds"][0]["field1"].as<const char*>();
-        int temp = tempStr.toInt() + 6U;
+        int temp = tempStr.toInt();
         tempStr = doc["feeds"][0]["field4"].as<const char*>();
         hue2 = tempStr.toInt() > 0U; // fanState
 
@@ -3830,113 +3825,6 @@ void Scanner() {
 }
 
 
-// ============ Night City =============
-//             © SlingMaster
-//              Нічне Місто
-// =====================================
-void NightCity() {
-  const byte PADDING = HEIGHT * 0.13;
-  // ---------------------
-
-  if (loadingFlag) {
-#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
-    if (selectedSettings) {
-      setModeSettings(50, random8(2, 254U));
-    }
-#endif
-    loadingFlag = false;
-    hue = 64;
-    for (uint16_t i = 0; i < WIDTH; i++) {
-      noise3d[0][i][0] = PADDING + 2;
-      noise3d[0][i][1] = PADDING + 3;
-    }
-    FastLED.clear();
-  }
-  // ---------------------
-
-  byte xx = random8(WIDTH);
-  byte yy = random8(HEIGHT);
-  byte fade = 80; //60 - abs(128 - step) / 3;
-  fadeToBlackBy(leds, NUM_LEDS, fade);
-
-  // -----------------
-  for (uint16_t y = 0; y < HEIGHT; y++) {
-    for (uint16_t x = 0; x < WIDTH; x++) {
-      if (y > PADDING) {
-        if (x % 6U == 0U) {
-          /* draw Elevator */
-          leds[XY(x, noise3d[0][x][1])] = CHSV(160, 255U, 255U);
-        } else {
-          /* draw light ------- */
-          // if ((x % 2U == 0U) & (y % 2U == 0U)) {
-          bool flag = (modes[currentMode].Scale > 50U) ? true : x % 2U == 0U;
-          if (flag & (y % 2U == 0U)) {
-            if ((x == xx) & (y == yy)) {
-              /* change light */
-              if (noise3d[0][x][y] == 0) {
-                noise3d[0][x][y] = random8(1, 5);
-                if (modes[currentMode].Speed > 80) {
-                  noise3d[0][random8(WIDTH)][random8(PADDING + 1, HEIGHT - 1)] = 6;
-                }
-                if (modes[currentMode].Speed > 160) {
-                  noise3d[0][random8(WIDTH)][random8(PADDING + 1, HEIGHT - 1)] = 6;
-                }
-
-              } else {
-                noise3d[0][x][y] = 0;
-              }
-            }
-            if (modes[currentMode].Speed > 250) {
-              noise3d[0][x][y] = 2;
-            }
-            /* draw light ----- */
-            if (noise3d[0][x][y] > 0) {
-              if (noise3d[0][x][y] == 1U) {
-                leds[XY(x, y)] = CHSV(32U, 200U, 255U);
-              } else {
-                leds[XY(x, y)] =  CHSV(128U, 32U, 255U);
-              }
-            }
-          }
-        }
-      } else {
-        /* draw the lower floors */
-        if (y == PADDING) {
-          leds[XY(x, y)] = CHSV(hue, 255U, 255U);
-        } else {
-          leds[XY(x, y)] = CHSV(96U, 128U, 80U + y * 32);
-        }
-      }
-    }
-  }
-
-  /* change elevators position */
-  if (step % 4U == 0U) {
-    for (uint16_t i = 0; i < WIDTH; i++) {
-      if (i % 6U == 0U) {
-        /* 1 current floor */
-        if (noise3d[0][i][0] > noise3d[0][i][1]) noise3d[0][i][1]++;
-        if (noise3d[0][i][0] < noise3d[0][i][1]) noise3d[0][i][1]--;
-      }
-    }
-  }
-
-  /* 0 set target floor ----- */
-  if (step % 128U == 0U ) {
-    for (uint16_t i = 0; i < WIDTH; i++) {
-      if (i % 6U == 0U) {
-        /* 0 target floor ----- */
-        byte target_floor = random8(PADDING + 1, HEIGHT - 1);
-        if (target_floor % 2U) target_floor++;
-        noise3d[0][i][0] = target_floor;
-      }
-    }
-  }
-
-  hue++;
-  step++;
-}
-
 // ============== Avrora ===============
 //             © SlingMaster
 //                Аврора
@@ -4142,6 +4030,171 @@ void Fountain() {
   }
   step++;
 }
+
+
+// =============== Worms ===============
+//             © SlingMaster
+//                 Worms
+// =====================================
+void Worms() {
+  const byte BR_STEP = 255 / (HEIGHT + 12);
+  const byte STEP = (HEIGHT > 8) ? 3 : 1;
+  const byte IDX = ((HEIGHT > WIDTH) ? CENTER_X_MINOR + STEP : HEIGHT);
+
+  if (loadingFlag) {
+#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      setModeSettings(random8(50, 100), random8(100, 255U));
+    }
+#endif
+    loadingFlag = false;
+    /* init worms */
+    // noise3d[NUM_LAYERSMAX][WIDTH][HEIGHT];
+    for (uint8_t i = 0; i < IDX; i++) {
+      // set x position ----------
+      noise3d[0][i][0] = random8(WIDTH + CENTER_X_MINOR);
+      // set y position ----------
+      noise3d[1][i][0] = i * STEP;
+      // set color pixel ---------
+      noise3d[0][IDX + i][0] = floor(random8(255) / 32) * 32;
+    }
+
+    // fade ----------------------
+    pcnt = modes[currentMode].Scale + ((HEIGHT > 8) ? 20 : 0) ;
+
+    FastLED.clear();
+  }
+
+  if (deltaValue & (HEIGHT > 8)) {
+    blurScreen(64);
+    //blur2d(leds, WIDTH, CENTER_Y_MINOR + random8(4), 48);
+    deltaValue = 0;
+  } else {
+    fadeToBlackBy(leds, NUM_LEDS, pcnt );
+  }
+
+  for (uint8_t j = 0; j < IDX; j++) {
+    hue =  noise3d[0][IDX + j][0];
+    byte x = noise3d[0][j][0];
+    byte y = noise3d[1][j][0]; // + (x % 2);
+    noise3d[0][j][0] = x - 1;
+
+    drawPixelXY(x, y, CHSV(hue, 255 - abs(128 - step) / 2, 255 - y * BR_STEP));
+
+    if (x == 0) {
+      noise3d[0][j][0] = WIDTH - 1;
+      // noise3d[1][j][0] = (y > 1) ? y - 2 : y - 1;
+      noise3d[1][j][0] = y - 1;
+      if (y == 0) {
+        noise3d[1][j][0] = HEIGHT - 1;
+        noise3d[0][IDX + j][0] = hue + 32;
+      }
+      if (y % 2 == 0) deltaValue = 1;
+    }
+  }
+  step++;
+}
+
+// =========== Rainbow Rings ===========
+//    base code © Martin Kleppe @aemkei
+//             © SlingMaster
+//            Райдужні кільця
+// =====================================
+float codeEff(double t, double i, double x, double y) {
+  hue = 255U; hue2 = 0U; // | CENTER_X_MAJOR
+  return sin16((t - sqrt3((x - CENTER_X_MAJOR) * (x - CENTER_X_MAJOR) + (y - CENTER_Y_MAJOR) * (y - CENTER_Y_MAJOR))) * 8192.0) / 32767.0;
+}
+
+// --------------------------------------
+void drawFrame(double t, double x, double y) {
+  static uint32_t t_count;
+  static byte scaleXY = 8;
+  double i = (y * WIDTH) + x;
+  double frame = constrain(codeEff(t, i, x, y), -1, 1) * 255;
+  uint16_t tt = floor(i);
+  byte xx;
+  byte yy;
+  byte angle;
+  byte radius;
+
+  if (frame > 0) {
+    // white or black color
+    if (modes[currentMode].Scale > 70) {
+      if (modes[currentMode].Scale > 90) {
+        drawPixelXY(x, y, CRGB(frame / 4, frame / 2, frame / 2));
+      } else {
+        drawPixelXY(x, y, CRGB(frame / 2, frame / 2, frame / 4));
+      }
+
+    } else {
+      drawPixelXY(x, y, CRGB::Black);
+    }
+  } else {
+    if (frame < 0) {
+      switch (deltaHue2) {
+        case 0:
+          hue = step + y * x;
+          break;
+        case 1:
+          hue = 64 + (y + x) * abs(128 - step) / CENTER_Y_MAJOR;
+          break;
+        case 2:
+          hue = y * x + abs(y - CENTER_Y_MAJOR) * 4;
+          break;
+        case 3:
+          xx = (byte)x;
+          yy = (byte)y;
+          angle = noise3d[0][xx][yy];
+          radius = noise3d[1][xx][yy];
+          if ((xx == 0) & (yy == 0))  t_count += 8;
+          hue = (angle * scaleXY) + (radius * scaleXY) + t_count;
+          break;
+        default:
+          hue = step + y * x;
+          break;
+      }
+      drawPixelXY(x, y, CHSV( hue, frame * -1, frame * -1));
+    } else {
+      drawPixelXY(x, y, CRGB::Black);
+    }
+  }
+}
+
+// -------------------------------------
+void RainbowRings() {
+  if (loadingFlag) {
+#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    if (selectedSettings) {
+      //                     scale | speed
+      setModeSettings(random8(100U), random8(255U));
+    }
+#endif //#if defined(USE_RANDOM_SETS_IN_APP) || defined(RANDOM_SETTINGS_IN_CYCLE_MODE)
+    loadingFlag = false;
+    deltaHue = 0;
+    FPSdelay = 1;
+    deltaHue2 = modes[currentMode].Scale / 22;
+    hue = 255U; hue2 = 0U;
+
+    for (int8_t x = -CENTER_X_MAJOR; x < CENTER_X_MAJOR; x++) {
+      for (int8_t y = CENTER_X_MAJOR; y < HEIGHT; y++) {
+        noise3d[0][x + CENTER_X_MAJOR][y] = 128 * (atan2(y, x) / PI);
+        noise3d[1][x + CENTER_X_MAJOR][y] = hypot(x, y);                    // thanks Sutaburosu
+      }
+    }
+  }
+
+  // *****
+  unsigned long milli = millis();
+  double t = milli / 1000.0;
+
+  for ( double x = 0; x < WIDTH; x++) {
+    for (double y = 0; y < HEIGHT; y++) {
+      drawFrame(t, x, y);
+    }
+  }
+  step++;
+}
+
 
 // ==============
 // END ==============

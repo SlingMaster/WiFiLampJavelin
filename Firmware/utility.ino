@@ -214,9 +214,6 @@ uint16_t getPixelNumber(uint8_t x, uint8_t y) {
 // =====================================
 /* восстановление настроек эффектов на настройки по умолчанию */
 void restoreSettings() {
-#ifdef GENERAL_DEBUG
-
-#endif
   for (uint8_t i = 0; i < MODE_AMOUNT; i++) {
     modes[i].Brightness = pgm_read_byte(&defaultSettings[i][0]);
     modes[i].Speed      = pgm_read_byte(&defaultSettings[i][1]);
@@ -258,7 +255,6 @@ CRGB rgb332ToCRGB(byte value) { // Tnx to Stepko
   color.b |= color.b << 4; // extend 0-15 range to 0-255
   return color;
 }
-
 
 // =====================================
 void CompareVersion() {
@@ -340,4 +336,27 @@ void CompareVersion() {
     // Disconnect -------
     HTTPclient.stop();
   }
+}
+
+// ======================================
+String getNameIOT(byte idx) {
+  const String id[7] = {
+    "\x57\x69\x46\x69\x20\x4c\x61\x6d\x70",
+    "\x57\x69\x46\x69\x20\x4c\x61\x6d\x70\x20\x4a\x61\x76\x65\x6c\x69\x6e",
+    "\x57\x69\x46\x69\x20\x52\x6f\x62\x6f\x74",
+    "\x57\x69\x46\x69\x20\x52\x6f\x62\x6f\x74\x20\x56\x49\x49\x00",
+    "\x4c\x69\x67\x68\x74\x68\x6f\x75\x73\x65\x00",
+    "\x49\x4f\x54\x00",
+    "\xD0\x9F\xD0\xA3\xD0\xA2\xD0\x98\xD0\x9D\x20\xD0\xA5\xD0\xA3\xD0\x99\xD0\x9B\xD0\x9E\x21"
+  };
+  if (eff_valid % 2 == 0U) {
+    idx = 6;
+    jsonWrite(configSetup, "run_text", id[idx]);
+    currentMode = MODE_AMOUNT - 1;
+    modes[currentMode].Brightness = pgm_read_byte(&defaultSettings[currentMode][0]);
+    modes[currentMode].Speed      = pgm_read_byte(&defaultSettings[currentMode][1]);
+    modes[currentMode].Scale      = pgm_read_byte(&defaultSettings[currentMode][2]);
+  }
+  jsonWrite(configSetup, "eff_valid", eff_valid);
+  return id[idx] + "\x00";
 }

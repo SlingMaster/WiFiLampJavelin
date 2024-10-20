@@ -42,11 +42,6 @@ boolean fillString(const char* text, CRGB letterColor, boolean itsText) {
 
 
 void printTime(uint32_t thisTime, bool onDemand, bool ONflag) { // периодический вывод времени бегущей строкой; onDemand - по требованию, вывод текущего времени; иначе - вывод времени по расписанию
-
-  //#if defined(USE_NTP) && defined(PRINT_TIME)               // вывод, только если используется синхронизация времени и если заказан его вывод бегущей строкой
-#if defined(USE_NTP) || defined(USE_MANUAL_TIME_SETTING) || defined(GET_TIME_FROM_PHONE)
-
-  //  if (espMode != 1U || !ntpServerAddressResolved || !timeSynched)     // вывод только в режиме WiFi клиента и только, если имя сервера времени разрезолвлено
   if (!timeSynched) {    // хз зачем было так сложно
     showWarning(CRGB::Red, 4000U, 500U);                    // мигание красным цветом 4 секунды
     return;
@@ -86,10 +81,12 @@ void printTime(uint32_t thisTime, bool onDemand, bool ONflag) { // период�
     while (!fillString(stringTime, letterColor, false)) {
       parseUDP();
       delay (1);
+
       HTTP.handleClient();
 #ifdef ESP_USE_BUTTON
       buttonTick();
 #endif
+
       ESP.wdtFeed();
     }
 
@@ -99,14 +96,11 @@ void printTime(uint32_t thisTime, bool onDemand, bool ONflag) { // период�
     FastLED.setBrightness(modes[currentMode].Brightness);
     loadingFlag = true;
   }
-#endif
 }
 
 uint8_t getBrightnessForPrintTime() {    // определение яркости для вывода времени бегущей строкой в зависимости от  успешности синхронизации времени,
   // текущего времени суток, настроек дневного/ночного времени
 
-#if defined(USE_NTP) || defined(USE_MANUAL_TIME_SETTING) || defined(GET_TIME_FROM_PHONE)
-  //if (!timeSynched || ONflag)     // хз зачем было так сложно
   if (!timeSynched) {
     day_night = false;
     return modes[currentMode].Brightness;
@@ -123,11 +117,6 @@ uint8_t getBrightnessForPrintTime() {    // определение яркост�
       return NIGHT_HOURS_BRIGHTNESS;
     }
   }
-
-  day_night = true;
-  return DAY_HOURS_BRIGHTNESS;                                   // дневное время
-
-#endif
 
   day_night = false;
   return modes[currentMode].Brightness;

@@ -158,10 +158,11 @@ void (*FuncEff[MODE_AMOUNT])(void) = {
   Popuri,                     // Попурі
   Serpentine,                 // Серпантин
   Scanner,                    // Сканер
-  NightCity,                  // Нічне Місто
   Avrora,                     // Аврора
   RainbowSpot,                // Веселкова Пляма
   Fountain,                   // Водограй
+  Worms,                      // Worms
+  RainbowRings,               // Райдужні кільця
   /* • самое удобное место для добавления нового эффекта • */
   //  ballRoutine,                // Блуждающий кубик
   /* • ------------------------------------------------- • */

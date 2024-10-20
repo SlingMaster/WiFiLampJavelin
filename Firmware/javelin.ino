@@ -350,13 +350,8 @@ void javelinConnect(uint8_t color) {
 #endif
 
   uint8_t br = 64U + 32 * progress;
-  u8_t color_ntp;
-#ifdef USE_NTP
-  // error ntp ------------------
-  color_ntp = 255;        // если при включенном NTP время не получено, будем красным цветом мигать
-#else
-  color_ntp = 176U;       // иначе скромно синим - нормальная ситуация при отсутствии NTP
-#endif // USE_NTP
+  uint8_t color_ntp = 255;
+
   if (progress >= 100) {
     DrawLevel(0, 0, ROUND_MATRIX, CHSV{0, 255, 190});
     return;

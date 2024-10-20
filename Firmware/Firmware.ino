@@ -70,10 +70,9 @@
 #include <GyverButton.h>
 #endif
 
-#ifdef USE_NTP
 #include <NTPClient.h>
 #include <Timezone.h>
-#endif
+
 
 #ifdef OTA
 #include "OtaManager.h"
@@ -103,17 +102,11 @@ CRGB leds[NUM_LEDS];
 
 WiFiUDP Udp;
 
-#ifdef USE_NTP
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, NTP_ADDRESS, 0, NTP_INTERVAL); // объект, запрашивающий время с ntp сервера; в нём смещение часового пояса не используется (перенесено в объект localTimeZone); здесь всегда должно быть время UTC
 TimeChangeRule summerTime  = { SUMMER_TIMEZONE_NAME, SUMMER_WEEK_NUM, SUMMER_WEEKDAY, SUMMER_MONTH, SUMMER_HOUR, 0 };
 TimeChangeRule winterTime  = { WINTER_TIMEZONE_NAME, WINTER_WEEK_NUM, WINTER_WEEKDAY, WINTER_MONTH, WINTER_HOUR, 0 };
 Timezone localTimeZone(summerTime, winterTime);
-
-#ifdef PHONE_N_MANUAL_TIME_PRIORITY
-bool stillUseNTP = true;
-#endif
-#endif
 
 timerMinim timeTimer(3000);
 bool ntpServerAddressResolved = false;
@@ -171,6 +164,9 @@ WiFiClient HTTPclient;
 
 
 // --- ИНИЦИАЛИЗАЦИЯ ПЕРЕМЕННЫХ -------
+time_t currentLocalTime;                  // Local Time
+String e_ip;
+int timezoneOffset = 0;
 uint8_t global_br;
 bool gb;
 uint16_t localPort = ESP_UDP_PORT;
@@ -250,10 +246,7 @@ void setup() {
   Serial.println();
   ESP.wdtEnable(WDTO_8S);
 
-
   // ПИНЫ
-
-  pinMode(LED_PIN, INPUT);
 #ifdef  JAVELIN
 #ifdef BACKLIGHT_PIN
   pinMode(BACKLIGHT_PIN, OUTPUT);
@@ -350,8 +343,6 @@ void setup() {
 
 
   // BUTTON & MATRIX
-  delay(1000);
-  pinMode(LED_PIN, OUTPUT);
 #ifdef JAVELIN
   FastLED.addLeds<WS2812B, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS + ROUND_MATRIX + LIGHT_MATRIX);     /*.setCorrection(TypicalLEDStrip)*/
   /* механічна кнопка тест Javelin ------------- */
@@ -369,13 +360,7 @@ void setup() {
   }
 
   FastLED.setBrightness(BRIGHTNESS);
-  FastLED.clear();
-
-#ifdef JAVELIN
-  DrawLevel(0, (ROUND_MATRIX + LIGHT_MATRIX), (ROUND_MATRIX + LIGHT_MATRIX), CHSV {180, 0, 0});
-#endif
-
-  FastLED.delay(2);
+  FastLED.clearData();        // очищення матриці
 
   // EEPROM
   EepromManager::InitEepromSettings(                        // инициализация EEPROM; запись начального состояния настроек, если их там ещё нет; инициализация настроек лампы значениями из EEPROM
@@ -458,13 +443,13 @@ void setup() {
   Udp.begin(localPort);
 
 
-  // NTP
-#ifdef USE_NTP
+
+  // NTP -----------------
   timeClient.begin();
   ESP.wdtFeed();
-#endif
 
-  // MQTT
+
+  // MQTT ----------------
 #if (USE_MQTT)
   if (espMode == 1U) {
     mqttClient = new AsyncMqttClient();
@@ -473,10 +458,9 @@ void setup() {
   ESP.wdtFeed();
 #endif
 
-  // ОСТАЛЬНОЕ
+  // ОСТАЛЬНОЕ -----------
   memset(matrixValue, 0, sizeof(matrixValue)); //это массив для эффекта Огонь. странно, что его нужно залить нулями
   randomSeed(micros());
-  changePower();
   loadingFlag = true;
   delay (100);
   my_timer = millis();
@@ -532,6 +516,7 @@ void loop() {
       LOG.println ("***********************************************");
       LOG.println("     Version • " + VERSION + " effects");
 #endif
+
       progress = 100;
 #ifdef SHOW_IP_TO_START
       ONflag = false;
@@ -539,8 +524,9 @@ void loop() {
       FastLED.clear();
       FastLED.delay(2);
 #endif SHOW_IP_TO_START
-
       delay (500);
+      // auto load timezone --
+      GetGeolocation();
       CompareVersion();
       delay (500);
       FastLED.clear();
@@ -553,7 +539,7 @@ void loop() {
   } do {
     parseUDP();
 
-    if (extCtrl == 0U) {                                                   // відключаємо виконня всіх процесів які не потрібні при виводі на матрицю зі сторонньої програми
+    if (extCtrl == 0U) {                                              // відключаємо виконня всіх процесів які не потрібні при виводі на матрицю зі сторонньої програми
 
       //delay (10);                                                   // Для одной из плат(NodeMCU v3 без металлического экрана над ESP и Flash памятью) пришлось ставить задержку. Остальные работали нормально.
       if ((connect || !espMode) && ((millis() - my_timer) >= 10UL)) { // Пришлось уменьшить частоту обращений к обработчику запросов web страницы, чтобы не использовать delay (10);.
@@ -564,13 +550,9 @@ void loop() {
       // ----------------------
       effectsTick();
       // ----------------------
-      EepromManager::HandleEepromTick(&settChanged, &eepromTimeout, &ONflag,
-                                      &currentMode, modes, &(FavoritesManager::SaveFavoritesToEeprom));
+      EepromManager::HandleEepromTick(&settChanged, &eepromTimeout, &ONflag, &currentMode, modes, &(FavoritesManager::SaveFavoritesToEeprom));
       // yield();
-#if defined(USE_NTP) || defined(USE_MANUAL_TIME_SETTING) || defined(GET_TIME_FROM_PHONE)
-      //if (millis() > 30 * 1000U) можно попытаться оттянуть срок первой попытки синхронизации времени на 30 секунд, чтобы роутер успел не только загрузиться, но и соединиться с интернетом
       timeTick();
-#endif
 
 #ifdef ESP_USE_BUTTON
       buttonTick();
@@ -594,10 +576,9 @@ void loop() {
       if (FavoritesManager::HandleFavorites(                    // обработка режима избранных эффектов
             &ONflag,
             &currentMode,
-            &loadingFlag
-#if defined(USE_NTP) || defined(USE_MANUAL_TIME_SETTING) || defined(GET_TIME_FROM_PHONE)
-            , &dawnFlag
-#endif
+            &loadingFlag,
+            &dawnFlag
+
 #ifdef RANDOM_SETTINGS_IN_CYCLE_MODE
             , &random_on
             , &selectedSettings
@@ -672,14 +653,5 @@ void initConfigure() {
   DAY_HOURS_BRIGHTNESS = jsonReadtoInt(configSetup, "day_bright");
   DONT_TURN_ON_AFTER_SHUTDOWN = jsonReadtoInt(configSetup, "effect_always");
   AUTOMATIC_OFF_TIME = (SLEEP_TIMER * 60UL * 60UL * 1000UL) * ( uint32_t )(jsonReadtoInt(configSetup, "timer5h"));
-
-#ifdef USE_NTP
-  (jsonRead(configSetup, "ntp")).toCharArray (NTP_ADDRESS, (jsonRead(configSetup, "ntp")).length() + 1);
-#endif
-
-#ifdef USE_NTP
-  winterTime.offset = jsonReadtoInt(configSetup, "timezone") * 60;
-  summerTime.offset = winterTime.offset + jsonReadtoInt(configSetup, "Summer_Time") * 60;
-  localTimeZone.setRules (summerTime, winterTime);
-#endif
+  jsonRead(configSetup, "ntp").toCharArray (NTP_ADDRESS, (jsonRead(configSetup, "ntp")).length() + 1);
 }

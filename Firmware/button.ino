@@ -238,7 +238,7 @@ void buttonTick() {
       changePower();
     }
     updateSets();
-
+    if (eff_valid > CMD_POWER) return;
 #if (USE_MQTT)
     if (espMode == 1U) {
       MqttManager::needToPublish = true;

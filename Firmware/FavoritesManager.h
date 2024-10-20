@@ -82,11 +82,9 @@ class FavoritesManager {
     static bool HandleFavorites(                            // функция, обрабатывающая циклическое переключение избранных эффектов; возвращает true, если эффект был переключен
       bool* ONflag,
       uint8_t* currentMode,
-      bool* loadingFlag
-      //#ifdef USE_NTP
-#if defined(USE_NTP) || defined(USE_MANUAL_TIME_SETTING) || defined(GET_TIME_FROM_PHONE)
-      , bool* dawnFlag
-#endif
+      bool* loadingFlag,
+      bool* dawnFlag
+
 #ifdef RANDOM_SETTINGS_IN_CYCLE_MODE
       , uint8_t* random_on
       , uint8_t* selectedSettings
@@ -94,18 +92,13 @@ class FavoritesManager {
 #endif
     ) {
       if (FavoritesRunning == 0 ||
-          !*ONflag                                          // лампа не переключается на следующий эффект при выключенной матрице
-          //#ifdef USE_NTP
-#if defined(USE_NTP) || defined(USE_MANUAL_TIME_SETTING) || defined(GET_TIME_FROM_PHONE)
-          || *dawnFlag                                      // лампа не переключается на следующий эффект при включенном будильнике
-#endif
+          !*ONflag || *dawnFlag                                // лампа не переключается на следующий эффект при выключенной матрице или при включенном будильнике
           || *currentMode == EFF_WHITE_COLOR && FavoriteModes[EFF_WHITE_COLOR] == 0U // лампа не переключается на следующий эффект, если выбран режим Белый свет, и он не в списке режима Цикл
          ) {
         return false;
       }
 
       if (nextModeAt == 0) {                                 // лампа не переключается на следующий эффект сразу после включения режима избранных эффектов
-
         nextModeAt = getNextTime();
         return false;
       }
